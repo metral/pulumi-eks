@@ -17,7 +17,7 @@ import * as k8s from "@pulumi/kubernetes";
 import * as pulumi from "@pulumi/pulumi";
 import * as crypto from "crypto";
 
-import { Cluster, CoreData } from "./cluster";
+import { Cluster, CoreData, RoleMapping, UserMapping } from "./cluster";
 import { createNodeGroupSecurityGroup } from "./securitygroup";
 import transform from "./transform";
 
@@ -136,6 +136,31 @@ export interface NodeGroupBaseOptions {
      * Desired Kubernetes master / control plane version. If you do not specify a value, the latest available version is used.
      */
     version?: pulumi.Input<string>;
+
+    /**
+     * Optional mappings from AWS IAM roles to Kubernetes users and groups.
+     */
+    roleMappings?: pulumi.Input<pulumi.Input<RoleMapping>[]>;
+
+     /**
+     * Optional mappings from AWS IAM users to Kubernetes users and groups.
+     */
+    userMappings?: pulumi.Input<pulumi.Input<UserMapping>[]>;
+
+     /**
+     * The instance profile to use for all nodes in this node group.
+     */
+    instanceProfile?: aws.iam.InstanceProfile;
+
+    /**
+     * The instance role to use for all nodes in this node group.
+     */
+    instanceRole?: pulumi.Input<aws.iam.Role>;
+
+    /**
+     * The a custom role policy for the worker node instance role.
+     */
+    customInstanceRolePolicy?: pulumi.Input<string>;
 }
 
 /**
@@ -166,7 +191,8 @@ export interface NodeGroupData {
 /**
  * NodeGroup is a component that wraps the AWS EC2 instances that provide compute capacity for an EKS cluster.
  */
-export class NodeGroup extends pulumi.ComponentResource implements NodeGroupData {
+// export class NodeGroup extends pulumi.ComponentResource implements NodeGroupData {
+export class NodeGroup extends pulumi.ComponentResource {
     /**
      * The security group for the cluster's nodes.
      */
@@ -190,6 +216,7 @@ export class NodeGroup extends pulumi.ComponentResource implements NodeGroupData
      * @param args The arguments for this cluster.
      * @param opts A bag of options that control this component's behavior.
      */
+    // protected constructor(name: string, args: NodeGroupOptions, opts?: pulumi.ComponentResourceOptions) {
     constructor(name: string, args: NodeGroupOptions, opts?: pulumi.ComponentResourceOptions) {
         super("eks:index:NodeGroup", name, args, opts);
 
@@ -211,7 +238,7 @@ function isCoreData(arg: NodeGroupOptionsCluster): arg is CoreData {
     return (arg as CoreData).cluster !== undefined;
 }
 
-export function createNodeGroup(name: string, args: NodeGroupOptions, parent: pulumi.ComponentResource,  k8sProvider: k8s.Provider): NodeGroupData {
+function createNodeGroup(name: string, args: NodeGroupOptions, parent: pulumi.ComponentResource, k8sProvider: k8s.Provider): NodeGroupData {
     let nodeSecurityGroup: aws.ec2.SecurityGroup;
     const cfnStackDeps: Array<pulumi.Resource> = [];
 
@@ -220,8 +247,8 @@ export function createNodeGroup(name: string, args: NodeGroupOptions, parent: pu
     if (core.vpcCni !== undefined) {
         cfnStackDeps.push(core.vpcCni);
     }
-    if (core.eksNodeAccess !== undefined) {
-        cfnStackDeps.push(core.eksNodeAccess);
+    if (core.awsAuth !== undefined) {
+        cfnStackDeps.push(core.awsAuth);
     }
 
     let eksClusterIngressRule: aws.ec2.SecurityGroupRule = args.clusterIngressRule!;
@@ -379,7 +406,7 @@ ${customUserData}
         associatePublicIpAddress: nodeAssociatePublicIpAddress,
         imageId: amiId,
         instanceType: args.instanceType || "t2.medium",
-        iamInstanceProfile: core.instanceProfile,
+        iamInstanceProfile: args.instanceProfile,
         keyName: keyName,
         securityGroups: [ nodeSecurityGroupId ],
         spotPrice: args.spotPrice,

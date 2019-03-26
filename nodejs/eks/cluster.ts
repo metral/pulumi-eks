@@ -20,7 +20,7 @@ import which = require("which");
 
 import { VpcCni, VpcCniOptions } from "./cni";
 import { createDashboard } from "./dashboard";
-import { createNodeGroup, NodeGroup, NodeGroupBaseOptions, NodeGroupData } from "./nodegroup";
+import { NodeGroup, NodeGroupBaseOptions, NodeGroupData } from "./nodegroup";
 import { createNodeGroupSecurityGroup } from "./securitygroup";
 import { ServiceRole } from "./servicerole";
 import { createStorageClass, EBSVolumeType, StorageClass } from "./storageclass";
@@ -74,8 +74,7 @@ export interface CoreData {
     subnetIds: pulumi.Output<string[]>;
     clusterSecurityGroup: aws.ec2.SecurityGroup;
     provider: k8s.Provider;
-    instanceProfile: aws.iam.InstanceProfile;
-    eksNodeAccess?: k8s.core.v1.ConfigMap;
+    awsAuth: k8s.core.v1.ConfigMap;
     kubeconfig?: pulumi.Output<any>;
     vpcCni?: VpcCni;
 }
@@ -183,67 +182,14 @@ export function createCore(name: string, args: ClusterOptions, parent: pulumi.Co
     // Create the VPC CNI management resource.
     const vpcCni = new VpcCni(`${name}-vpc-cni`, kubeconfig, args.vpcCniOptions, { parent: parent });
 
-    // Create the instance role we'll use for worker nodes.
-    let instanceRole: pulumi.Output<aws.iam.Role>;
-    if (args.instanceRole) {
-        instanceRole = pulumi.output(args.instanceRole);
-    } else {
-        instanceRole = (new ServiceRole(`${name}-instanceRole`, {
-            service: "ec2.amazonaws.com",
-            managedPolicyArns: [
-                "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy",
-                "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy",
-                "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly",
-            ],
-        }, { parent: parent })).role;
-    }
-    const instanceRoleARN = instanceRole.apply(r => r.arn);
-
-    if (args.customInstanceRolePolicy) {
-        const customRolePolicy = new aws.iam.RolePolicy(`${name}-EKSWorkerCustomPolicy`, {
-            role: instanceRole,
-            policy: args.customInstanceRolePolicy,
-        });
-    }
-
-    // Enable access to the EKS cluster for worker nodes.
-    const instanceRoleMapping: RoleMapping = {
-        roleArn: instanceRoleARN,
-        username: "system:node:{{EC2PrivateDNSName}}",
-        groups: ["system:bootstrappers", "system:nodes"],
-    };
-    const roleMappings = pulumi.all([pulumi.output(args.roleMappings || []), instanceRoleMapping])
-        .apply(([mappings, instanceMapping]) => {
-            return jsyaml.safeDump([...mappings, instanceMapping].map(m => ({
-                rolearn: m.roleArn,
-                username: m.username,
-                groups: m.groups,
-            })));
-        });
-    const nodeAccessData: any = {
-        mapRoles: roleMappings,
-    };
-    if (args.userMappings !== undefined) {
-        nodeAccessData.mapUsers = pulumi.output(args.userMappings).apply(mappings => {
-            return jsyaml.safeDump(mappings.map(m => ({
-                userarn: m.userArn,
-                username: m.username,
-                groups: m.groups,
-            })));
-        });
-    }
-    const eksNodeAccess = new k8s.core.v1.ConfigMap(`${name}-nodeAccess`, {
+    const awsAuth = new k8s.core.v1.ConfigMap("awsAuth-configMap", {
         apiVersion: "v1",
         metadata: {
             name: `aws-auth`,
             namespace: "kube-system",
         },
-        data: nodeAccessData,
+        // data: nodeAccessData,
     }, { parent: parent, provider: provider });
-
-    const instanceProfile = new aws.iam.InstanceProfile(`${name}-instanceProfile`, {
-        role: instanceRole,
-    }, { parent: parent });
 
     return {
         vpcId: pulumi.output(vpcId),
@@ -253,8 +199,7 @@ export function createCore(name: string, args: ClusterOptions, parent: pulumi.Co
         kubeconfig: kubeconfig,
         provider: provider,
         vpcCni: vpcCni,
-        instanceProfile: instanceProfile,
-        eksNodeAccess: eksNodeAccess,
+        awsAuth: awsAuth,
     };
 }
 
@@ -407,6 +352,32 @@ export interface ClusterOptions {
  */
 export interface ClusterNodeGroupOptions extends NodeGroupBaseOptions {}
 
+// /**
+//  * ClusterNodeGroup extends the protected NodeGroup class for creation and
+//  * management of NodePools, as the single over-arching aws-auth k8s ConfigMap:
+//  *   - needs to be managed at the cluster-level since there's only one per cluster,
+//  *   - requires the IAM instance profile for the new NodeGroup to map roles, and
+//  *   - is a dependency of all NodeGroups.
+//  */
+// export class ClusterNodeGroup extends NodeGroup {
+//     /**
+//      * Create a new EKS cluster with worker nodes, optional storage classes, and deploy the Kubernetes Dashboard if
+//      * requested.
+//      *
+//      * @param name The _unique_ name of this component.
+//      * @param args The arguments for this cluster.
+//      * @param opts A bag of options that control this component's behavior.
+//      */
+//
+//     static create(name: string, args: NodeGroupOptions, opts?: pulumi.ComponentResourceOptions): NodeGroup {
+//         return new ClusterNodeGroup(name, args, opts);
+//     }
+//
+//     constructor(name: string, args: NodeGroupOptions, opts?: pulumi.ComponentResourceOptions) {
+//         super(name, args, opts);
+//     }
+// }
+
 /**
  * Cluster is a component that wraps the AWS and Kubernetes resources necessary to run an EKS cluster, its worker
  * nodes, its optional StorageClasses, and an optional deployment of the Kubernetes Dashboard.
@@ -464,6 +435,12 @@ export class Cluster extends pulumi.ComponentResource {
     public readonly core: CoreData;
 
     /**
+     * The EKS IAM Authenticator ConfigMap 'aws-auth' used to manage IAM Users
+     * and Roles for the cluster. See https://docs.aws.amazon.com/eks/latest/userguide/add-user-role.html.
+     */
+    public readonly awsAuth: k8s.core.v1.ConfigMap;
+
+    /**
      * Create a new EKS cluster with worker nodes, optional storage classes, and deploy the Kubernetes Dashboard if
      * requested.
      *
@@ -482,7 +459,7 @@ export class Cluster extends pulumi.ComponentResource {
         this.core = core;
         this.clusterSecurityGroup = core.clusterSecurityGroup;
         this.eksCluster = core.cluster;
-        this.instanceRole = core.instanceProfile.role;
+        this.awsAuth = core.awsAuth;
 
         // create default security group for nodegroup
         this.nodeSecurityGroup = createNodeGroupSecurityGroup(name, {
@@ -501,11 +478,20 @@ export class Cluster extends pulumi.ComponentResource {
             sourceSecurityGroupId: this.nodeSecurityGroup.id,
         }, { parent: this });
 
+        // Export the cluster's kubeconfig with a dependency upon the cluster's autoscaling group. This will help
+        // ensure that the cluster's consumers do not attempt to use the cluster until its workers are attached.
         const configDeps = [core.kubeconfig];
+        this.kubeconfig = pulumi.all(configDeps).apply(([kubeconfig]) => kubeconfig);
+
+        // Export a k8s provider with the above kubeconfig. Note that we do not export the provider we created earlier
+        // in order to help ensure that worker nodes are available before the provider can be used.
+        this.provider = new k8s.Provider(`${name}-provider`, {
+            kubeconfig: this.kubeconfig.apply(JSON.stringify),
+        }, { parent: this });
+
         if (!args.skipDefaultNodeGroup) {
             // Create the worker node group and grant the workers access to the API server.
-            this.defaultNodeGroup = createNodeGroup(name, {
-                cluster: core,
+            this.defaultNodeGroup = this.createNodeGroup(name, {
                 nodeSubnetIds: args.nodeSubnetIds,
                 nodeAssociatePublicIpAddress: args.nodeAssociatePublicIpAddress,
                 nodeSecurityGroup: this.nodeSecurityGroup,
@@ -519,20 +505,14 @@ export class Cluster extends pulumi.ComponentResource {
                 desiredCapacity: args.desiredCapacity,
                 amiId: args.nodeAmiId,
                 version: args.version,
-            }, this, core.provider);
+                roleMappings: args.roleMappings,
+                userMappings: args.userMappings,
+                instanceRole: args.instanceRole,
+                customInstanceRolePolicy: args.customInstanceRolePolicy,
+            });
             this.nodeSecurityGroup = this.defaultNodeGroup.nodeSecurityGroup;
             configDeps.push(this.defaultNodeGroup.cfnStack.id);
         }
-
-        // Export the cluster's kubeconfig with a dependency upon the cluster's autoscaling group. This will help
-        // ensure that the cluster's consumers do not attempt to use the cluster until its workers are attached.
-        this.kubeconfig = pulumi.all(configDeps).apply(([kubeconfig]) => kubeconfig);
-
-        // Export a k8s provider with the above kubeconfig. Note that we do not export the provider we created earlier
-        // in order to help ensure that worker nodes are available before the provider can be used.
-        this.provider = new k8s.Provider(`${name}-provider`, {
-            kubeconfig: this.kubeconfig.apply(JSON.stringify),
-        }, { parent: this });
 
         // If we need to deploy the Kubernetes dashboard, do so now.
         if (args.deployDashboard === undefined || args.deployDashboard) {
@@ -543,6 +523,13 @@ export class Cluster extends pulumi.ComponentResource {
     }
 
     createNodeGroup(name: string, args: ClusterNodeGroupOptions): NodeGroup {
+        const nodeIam = createNodeIam(name, this, args.instanceRole, args.customInstanceRolePolicy);
+        const instanceRoleArn = nodeIam.instanceRole.apply(r => r.arn);
+
+        // Update the AWS IAM Authenticator Kubernetes ConfigMap to enable the
+        // worker nodes to join the cluster.
+        updateIamAuthConfigMap(this.core.awsAuth, this, this.provider, instanceRoleArn, args.userMappings, args.roleMappings);
+
         return new NodeGroup(name, {
             ...args,
             cluster: this.core,
@@ -553,4 +540,159 @@ export class Cluster extends pulumi.ComponentResource {
             providers: { kubernetes: this.provider },
         });
     }
+}
+
+// The IAM resources for the NodeGroup.
+type NodeGroupIam = {
+    /**
+     * The instance profile to use for all nodes in this node group.
+     */
+    instanceProfile: aws.iam.InstanceProfile;
+
+    /**
+     * The instance role to use for all nodes in this node group.
+     */
+    instanceRole: pulumi.Output<aws.iam.Role>;
+};
+
+// Create the IAM Role and Instance Profile for the worker nodes.
+export function createNodeIam(
+    name: string,
+    parent: pulumi.ComponentResource,
+    customInstanceRole?: pulumi.Input<aws.iam.Role>,
+    customInstanceRolePolicy?: pulumi.Input<string>): NodeGroupIam {
+    let instanceRole: pulumi.Output<aws.iam.Role>;
+    if (customInstanceRole) {
+        instanceRole = pulumi.output(customInstanceRole);
+    } else {
+        instanceRole = (new ServiceRole(`${name}-instanceRole`, {
+            service: "ec2.amazonaws.com",
+            managedPolicyArns: [
+                "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy",
+                "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy",
+                "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly",
+            ],
+        }, { parent: parent })).role;
+    }
+
+    const instanceProfile = new aws.iam.InstanceProfile(`${name}-instanceProfile`, {
+        role: instanceRole,
+    }, { parent: parent });
+
+    if (customInstanceRolePolicy) {
+        const instanceRolePolicy = new aws.iam.RolePolicy(`${name}-EKSWorkerCustomPolicy`, {
+            role: instanceRole,
+            policy: customInstanceRolePolicy,
+        });
+    }
+
+    return { instanceProfile: instanceProfile, instanceRole: instanceRole };
+}
+
+/*
+// Create the AWS IAM Authenticator Kubernetes ConfigMap to enable the node
+// group to join the cluster.
+export function createIamAuthConfigMap(
+    name: string,
+    parent: pulumi.ComponentResource,
+    provider: k8s.Provider,
+    instanceRoleArn: pulumi.Input<string>,
+    userMappings?: pulumi.Input<pulumi.Input<UserMapping>[]>,
+    roleMappings?: pulumi.Input<pulumi.Input<RoleMapping>[]>,
+): k8s.core.v1.ConfigMap {
+    const instanceRoleMapping: RoleMapping = {
+        roleArn: instanceRoleArn,
+        username: "system:node:{{EC2PrivateDNSName}}",
+        groups: ["system:bootstrappers", "system:nodes"],
+    };
+
+    const instanceRoleMappings = pulumi.all([pulumi.output(roleMappings || []), instanceRoleMapping])
+        .apply(([mappings, instanceMapping]) => {
+            return jsyaml.safeDump([...mappings, instanceMapping].map(m => ({
+                rolearn: m.roleArn,
+                username: m.username,
+                groups: m.groups,
+            })));
+        });
+
+    const nodeAccessData: any = {
+        mapRoles: instanceRoleMappings,
+    };
+
+    if (userMappings !== undefined) {
+        nodeAccessData.mapUsers = pulumi.output(userMappings).apply(mappings => {
+            return jsyaml.safeDump(mappings.map(m => ({
+                userarn: m.userArn,
+                username: m.username,
+                groups: m.groups,
+            })));
+        });
+    }
+
+    const awsAuth = new k8s.core.v1.ConfigMap(name, {
+        apiVersion: "v1",
+        metadata: {
+            name: `aws-auth`,
+            namespace: "kube-system",
+        },
+        data: nodeAccessData,
+    }, { parent: parent, provider: provider });
+
+    return awsAuth;
+}
+*/
+
+// Update the AWS IAM Authenticator Kubernetes ConfigMap to enable the node
+// group to join the cluster.
+export function updateIamAuthConfigMap(
+    currentAwsAuth: k8s.core.v1.ConfigMap,
+    parent: pulumi.ComponentResource,
+    provider: k8s.Provider,
+    instanceRoleArn: pulumi.Input<string>,
+    userMappings?: pulumi.Input<pulumi.Input<UserMapping>[]>,
+    roleMappings?: pulumi.Input<pulumi.Input<RoleMapping>[]>,
+): k8s.core.v1.ConfigMap {
+    return {} as k8s.core.v1.ConfigMap;
+
+    /*
+    const instanceRoleMapping: RoleMapping = {
+        roleArn: instanceRoleArn,
+        username: "system:node:{{EC2PrivateDNSName}}",
+        groups: ["system:bootstrappers", "system:nodes"],
+    };
+
+    const instanceRoleMappings = pulumi.all([pulumi.output(roleMappings || []), instanceRoleMapping])
+        .apply(([mappings, instanceMapping]) => {
+            return jsyaml.safeDump([...mappings, instanceMapping].map(m => ({
+                rolearn: m.roleArn,
+                username: m.username,
+                groups: m.groups,
+            })));
+        });
+
+    const nodeAccessData: any = {
+        mapRoles: instanceRoleMappings,
+    };
+
+    if (userMappings !== undefined) {
+        nodeAccessData.mapUsers = pulumi.output(userMappings).apply(mappings => {
+            return jsyaml.safeDump(mappings.map(m => ({
+                userarn: m.userArn,
+                username: m.username,
+                groups: m.groups,
+            })));
+        });
+    }
+
+    const awsAuth = new k8s.core.v1.ConfigMap(name, {
+        apiVersion: "v1",
+        metadata: {
+            name: `aws-auth`,
+            namespace: "kube-system",
+        },
+        data: nodeAccessData,
+    }, { parent: parent, provider: provider });
+
+    return awsAuth;
+    */
 }
