@@ -59,6 +59,16 @@ func Test_Examples(t *testing.T) {
 			ExpectRefreshChanges: true,
 		},
 		{
+			Dir: path.Join(cwd, "./nodegroup-iam"),
+			Config: map[string]string{
+				"aws:region": region,
+			},
+			Dependencies: []string{
+				"@pulumi/eks",
+			},
+			ExpectRefreshChanges: true,
+		},
+		{
 			Dir: path.Join(cwd, "./private-cluster"),
 			Config: map[string]string{
 				"aws:region": region,

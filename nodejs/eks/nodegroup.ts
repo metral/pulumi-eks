@@ -136,6 +136,12 @@ export interface NodeGroupBaseOptions {
      * Desired Kubernetes master / control plane version. If you do not specify a value, the latest available version is used.
      */
     version?: pulumi.Input<string>;
+
+    /**
+     * The instance profile to use for this node group. Note, the role for the instance profile
+     * must be supplied in the ClusterOptions as either: 'instanceRole', or as a role of 'instanceRoles'.
+     */
+    instanceProfile?: pulumi.Input<aws.iam.InstanceProfile>;
 }
 
 /**
@@ -379,7 +385,7 @@ ${customUserData}
         associatePublicIpAddress: nodeAssociatePublicIpAddress,
         imageId: amiId,
         instanceType: args.instanceType || "t2.medium",
-        iamInstanceProfile: core.instanceProfile,
+        iamInstanceProfile: args.instanceProfile,
         keyName: keyName,
         securityGroups: [ nodeSecurityGroupId ],
         spotPrice: args.spotPrice,

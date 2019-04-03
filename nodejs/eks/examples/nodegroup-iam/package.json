@@ -1,0 +1,14 @@
+{
+    "name": "nodegroup-iam",
+    "devDependencies": {
+        "typescript": "^3.0.0",
+        "@types/node": "latest"
+    },
+    "dependencies": {
+        "@pulumi/pulumi": "latest",
+        "sync-request": "^6.0.0"
+    },
+    "peerDependencies": {
+        "@pulumi/eks": "latest"
+    }
+}

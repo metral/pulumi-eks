@@ -1,0 +1,3 @@
+name: nodegroup-iam
+description: EKS nodegroup with IAM role example
+runtime: nodejs
