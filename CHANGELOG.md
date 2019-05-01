@@ -1,9 +1,11 @@
 ## Unreleased
-- feat(control plane logging): Enable control plane logging to cloudwatch.
-  [#100](https://github.com/pulumi/pulumi-eks/pull/117).
 
 ### Improvements
 
+- chore(cluster): de-dupe creation of nodeSecurityGroup & ingress rule
+  [#118](https://github.com/pulumi/pulumi-eks/pull/118)
+- feat(control plane logging): Enable control plane logging to cloudwatch.
+  [#100](https://github.com/pulumi/pulumi-eks/pull/117).
 - fix(ami): only apply AMI smart-default selection on creation
   [#114](https://github.com/pulumi/pulumi-eks/pull/114)
 
