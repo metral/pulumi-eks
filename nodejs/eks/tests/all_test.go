@@ -78,6 +78,49 @@ func Test_AllTests(t *testing.T) {
 				},
 			},
 		},
+		// TODO(metral): Uncomment / add back in once
+		// https://github.com/pulumi/pulumi-eks/issues/107 is resolved.
+		/*
+			{
+				Dir: path.Join(cwd, "replace-cluster-add-subnets"),
+				Config: map[string]string{
+					"aws:region": region,
+				},
+				Dependencies: []string{
+					"@pulumi/eks",
+				},
+				ExpectRefreshChanges: true,
+				EditDirs: []integration.EditDir{
+					{
+						Dir:      path.Join(cwd, "replace-cluster-add-subnets", "step1"),
+						Additive: true,
+						ExtraRuntimeValidation: func(t *testing.T, info integration.RuntimeValidationStackInfo) {
+							// Get the cluster kubeconfig
+							kubeAccess, err := utils.MapClusterToKubeAccess(
+								info.Outputs["kubeconfig"],
+							)
+							if err != nil {
+								t.Error(err)
+							}
+
+							// Get the desired Worker node count for the whole cluster
+							clusterNodeCount, err :=
+								utils.MapClusterToNodeCount(info.Deployment.Resources)
+							if err != nil {
+								t.Error(err)
+							}
+
+							for clusterName := range kubeAccess {
+								clientset := kubeAccess[clusterName].Clientset
+								fmt.Printf("Testing Cluster: %s\n", clusterName)
+								t.Logf("Testing Cluster: %s\n", clusterName)
+								utils.EKSSmokeTest(t, clientset, clusterNodeCount[clusterName])
+							}
+						},
+					},
+				},
+			},
+		*/
 	}
 
 	longTests := []integration.ProgramTestOptions{}
