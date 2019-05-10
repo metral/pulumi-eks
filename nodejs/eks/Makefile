@@ -23,4 +23,4 @@ test_fast::
 	$(GO_TEST_FAST) ./examples
 
 test_all::
-	$(GO_TEST) ./examples
+	$(GO_TEST) ./examples ./tests
