@@ -22,6 +22,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	"github.com/pulumi/pulumi-eks/utils"
 	"github.com/pulumi/pulumi/pkg/testing/integration"
 )
 
@@ -47,6 +48,30 @@ func Test_Examples(t *testing.T) {
 				"@pulumi/eks",
 			},
 			ExpectRefreshChanges: true,
+			ExtraRuntimeValidation: func(t *testing.T, info integration.RuntimeValidationStackInfo) {
+				// Get the cluster kubeconfig
+				kubeAccess, err := utils.MapClusterToKubeAccess(
+					info.Outputs["kubeconfig1"],
+					info.Outputs["kubeconfig2"],
+				)
+				if err != nil {
+					t.Error(err)
+				}
+
+				// Get the desired Worker node count for the whole cluster
+				clusterNodeCount, err :=
+					utils.MapClusterToNodeCount(info.Deployment.Resources)
+				if err != nil {
+					t.Error(err)
+				}
+
+				for clusterName := range kubeAccess {
+					clientset := kubeAccess[clusterName].Clientset
+					fmt.Printf("Testing Cluster: %s\n", clusterName)
+					t.Logf("Testing Cluster: %s\n", clusterName)
+					utils.EKSSmokeTest(t, clientset, clusterNodeCount[clusterName])
+				}
+			},
 		},
 		{
 			Dir: path.Join(cwd, "./nodegroup"),
@@ -57,6 +82,30 @@ func Test_Examples(t *testing.T) {
 				"@pulumi/eks",
 			},
 			ExpectRefreshChanges: true,
+			ExtraRuntimeValidation: func(t *testing.T, info integration.RuntimeValidationStackInfo) {
+				// Get the cluster kubeconfig
+				kubeAccess, err := utils.MapClusterToKubeAccess(
+					info.Outputs["kubeconfig1"],
+					info.Outputs["kubeconfig2"],
+				)
+				if err != nil {
+					t.Error(err)
+				}
+
+				// Get the desired Worker node count for the whole cluster
+				clusterNodeCount, err :=
+					utils.MapClusterToNodeCount(info.Deployment.Resources)
+				if err != nil {
+					t.Error(err)
+				}
+
+				for clusterName := range kubeAccess {
+					clientset := kubeAccess[clusterName].Clientset
+					fmt.Printf("Testing Cluster: %s\n", clusterName)
+					t.Logf("Testing Cluster: %s\n", clusterName)
+					utils.EKSSmokeTest(t, clientset, clusterNodeCount[clusterName])
+				}
+			},
 		},
 		{
 			Dir: path.Join(cwd, "./private-cluster"),
@@ -67,6 +116,29 @@ func Test_Examples(t *testing.T) {
 				"@pulumi/eks",
 			},
 			ExpectRefreshChanges: true,
+			ExtraRuntimeValidation: func(t *testing.T, info integration.RuntimeValidationStackInfo) {
+				// Get the cluster kubeconfig
+				kubeAccess, err := utils.MapClusterToKubeAccess(
+					info.Outputs["kubeconfig"],
+				)
+				if err != nil {
+					t.Error(err)
+				}
+
+				// Get the desired Worker node count for the whole cluster
+				clusterNodeCount, err :=
+					utils.MapClusterToNodeCount(info.Deployment.Resources)
+				if err != nil {
+					t.Error(err)
+				}
+
+				for clusterName := range kubeAccess {
+					clientset := kubeAccess[clusterName].Clientset
+					fmt.Printf("Testing Cluster: %s\n", clusterName)
+					t.Logf("Testing Cluster: %s\n", clusterName)
+					utils.EKSSmokeTest(t, clientset, clusterNodeCount[clusterName])
+				}
+			},
 		},
 		{
 			Dir: path.Join(cwd, "./tags"),
@@ -77,6 +149,30 @@ func Test_Examples(t *testing.T) {
 				"@pulumi/eks",
 			},
 			ExpectRefreshChanges: true,
+			ExtraRuntimeValidation: func(t *testing.T, info integration.RuntimeValidationStackInfo) {
+				// Get the cluster kubeconfig
+				kubeAccess, err := utils.MapClusterToKubeAccess(
+					info.Outputs["kubeconfig1"],
+					info.Outputs["kubeconfig2"],
+				)
+				if err != nil {
+					t.Error(err)
+				}
+
+				// Get the desired Worker node count for the whole cluster
+				clusterNodeCount, err :=
+					utils.MapClusterToNodeCount(info.Deployment.Resources)
+				if err != nil {
+					t.Error(err)
+				}
+
+				for clusterName := range kubeAccess {
+					clientset := kubeAccess[clusterName].Clientset
+					fmt.Printf("Testing Cluster: %s\n", clusterName)
+					t.Logf("Testing Cluster: %s\n", clusterName)
+					utils.EKSSmokeTest(t, clientset, clusterNodeCount[clusterName])
+				}
+			},
 		},
 	}
 
