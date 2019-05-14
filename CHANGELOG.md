@@ -2,6 +2,9 @@
 
 ### Improvements
 
+- Expand nodejs SDK tests coverage, and add Kubernetes Smoke Tests for examples
+  & tests [#130](https://github.com/pulumi/pulumi-eks/pull/130)
+
 ## 0.18.5 (Released May 09, 2019)
 
 ### Improvements
