@@ -107,6 +107,29 @@ func Test_Examples(t *testing.T) {
 				)
 			},
 		},
+		{
+			Dir: path.Join(cwd, "storage-classes"),
+			Config: map[string]string{
+				"aws:region": region,
+			},
+			Dependencies: []string{
+				"@pulumi/eks",
+			},
+			// TODO: @metral remove this when issue is fixed.
+			// Per suggestion in https://git.io/fjVYi due to
+			// https://github.com/pulumi/pulumi/issues/2433
+			UpdateCommandlineFlags: []string{
+				"--skip-preview",
+			},
+			ExpectRefreshChanges: true,
+			ExtraRuntimeValidation: func(t *testing.T, info integration.RuntimeValidationStackInfo) {
+				utils.RunEKSSmokeTest(t,
+					info.Deployment.Resources,
+					info.Outputs["kubeconfig1"],
+					info.Outputs["kubeconfig2"],
+				)
+			},
+		},
 	}
 
 	longTests := []integration.ProgramTestOptions{}

@@ -2,6 +2,9 @@
 
 ### Improvements
 
+- feat(storage-classes): export all user created storage classes
+  [#172](https://github.com/pulumi/pulumi-eks/pull/172)
+
 ## 0.18.8 (Released June 19, 2019)
 
 ### Improvements
