@@ -1,0 +1,14 @@
+{
+    "name": "example-cluster",
+    "devDependencies": {
+        "typescript": "^3.0.0",
+        "@types/node": "latest"
+    },
+    "dependencies": {
+        "@pulumi/pulumi": "latest",
+        "@pulumi/awsx": "latest",
+        "@pulumi/aws": "latest",
+        "@pulumi/kubernetes": "latest",
+        "@pulumi/eks": "latest"
+    }
+}
