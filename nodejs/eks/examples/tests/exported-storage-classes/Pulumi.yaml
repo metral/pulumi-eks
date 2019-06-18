@@ -1,0 +1,3 @@
+name: test-expose-storage-classes
+description: Creates an EKS cluster with storage classes, and test their exporting.
+runtime: nodejs
