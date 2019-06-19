@@ -1,0 +1,135 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: k8s-demo
+spec:
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: http
+  selector:
+    app: k8s-demo
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: k8s-demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: k8s-demo
+  template:
+    metadata:
+      labels:
+        app: k8s-demo
+    spec:
+      volumes:
+        - hostPath:
+            path: /proc
+          name: proc
+        - downwardAPI:
+            defaultMode: 420
+            items:
+            - fieldRef:
+                apiVersion: v1
+                fieldPath: metadata.name
+              path: metadata.name
+            - fieldRef:
+                apiVersion: v1
+                fieldPath: metadata.namespace
+              path: metadata.namespace
+            - fieldRef:
+                apiVersion: v1
+                fieldPath: metadata.uid
+              path: metadata.uid
+            - fieldRef:
+                apiVersion: v1
+                fieldPath: metadata.labels
+              path: metadata.labels
+            - fieldRef:
+                apiVersion: v1
+                fieldPath: metadata.annotations
+              path: metadata.annotations
+          name: podinfo
+      containers:
+        - name: k8s-demo
+          image: quay.io/metral/k8s-demo:0.0.1
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            - name: SPEC_NODE_NAME
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: spec.nodeName
+            - name: SPEC_SERVICE_ACCOUNT_NAME
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: spec.serviceAccountName
+            - name: STATUS_HOST_IP
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: status.hostIP
+            - name: STATUS_POD_IP
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: status.podIP
+            - name: METADATA_NAME
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.name
+            - name: METADATA_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.namespace
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.name
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.namespace
+            - name: METADATA_UID
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.uid
+          volumeMounts:
+            - mountPath: /etc/podinfo
+              name: podinfo
+            - mountPath: /host/proc
+              name: proc
+
+---
+
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: k8s-demo
+  labels:
+    app: k8s-demo
+  annotations:
+    kubernetes.io/ingress.class: my-nginx-class
+spec:
+  rules:
+  - host: app.pulumi.com
+    http:
+      paths:
+        - path: "/foobar"
+          backend:
+            serviceName: k8s-demo
+            servicePort: http
