@@ -123,6 +123,36 @@ const ng2xlarge = new eks.NodeGroup(`${projectName}-ng-ondemand-2xlarge`, {
     providers: { kubernetes: myCluster.provider},
 });
 
+// Create a 4xlarge node group of c5.4xlarge workers, with similar taints on
+// the nodes as the 2xlarge nodegroup. This new  node group will be used to
+// migrate the Pods in the 2xlarge node group over to 4xlarge instance types.
+const ng4xlarge = new eks.NodeGroup(`${projectName}-ng-ondemand-4xlarge`, {
+    cluster: myCluster,
+    nodeSecurityGroup: myCluster.nodeSecurityGroup,
+    clusterIngressRule: myCluster.eksClusterIngressRule,
+    instanceType: "c5.4xlarge",
+    amiId: ami,
+    desiredCapacity: 3,
+    minSize: 3,
+    maxSize: 10,
+    instanceProfile: instanceProfile1,
+    labels: {"ondemand": "true", "amiId": ami},
+    taints: {
+        "nginx": {
+            value: "true",
+            effect: "NoSchedule",
+        },
+    },
+    // Example tags if we were to run cluster-autoscaler: https://git.io/fjwWc
+    autoScalingGroupTags: myCluster.core.cluster.name.apply(clusterName => ({
+        "k8s.io/cluster-autoscaler/enabled": "true",
+        [`k8s.io/cluster-autoscaler/${clusterName}`]: "true",
+    })),
+    cloudFormationTags: { "myOtherCloudFormationTag": "true" },
+}, {
+    providers: { kubernetes: myCluster.provider},
+});
+
 /*
  * Deploy the NGINX Ingress Controller
  */
