@@ -170,11 +170,13 @@ const service = nginx.createService(serviceName, myCluster.provider, labels,
     namespaceName, svcType, svcPorts);
 export const nginxServiceUrl = service.status.loadBalancer.ingress[0].hostname;
 
+/*
 // Deploy v1 of the NGINX Ingress Controller.
 const nodeSelector1: input.core.v1.NodeSelector = {
     nodeSelectorTerms: [{ matchExpressions: [{ key: "beta.kubernetes.io/instance-type", operator: "In", values: [ "t3.2xlarge" ]}]}],
 };
 const nginxV1 = nginx.createDeployment("nginx-v1", namespaceName, {app: "nginx-v1", svc: "nginx-ing-cntlr"}, myCluster, nodeSelector1);
+*/
 
 // Deploy v2 of the NGINX Ingress Controller.
 const nodeSelector2: input.core.v1.NodeSelector = {
