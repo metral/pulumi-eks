@@ -175,3 +175,9 @@ const nodeSelector1: input.core.v1.NodeSelector = {
     nodeSelectorTerms: [{ matchExpressions: [{ key: "beta.kubernetes.io/instance-type", operator: "In", values: [ "t3.2xlarge" ]}]}],
 };
 const nginxV1 = nginx.createDeployment("nginx-v1", namespaceName, {app: "nginx-v1", svc: "nginx-ing-cntlr"}, myCluster, nodeSelector1);
+
+// Deploy v2 of the NGINX Ingress Controller.
+const nodeSelector2: input.core.v1.NodeSelector = {
+    nodeSelectorTerms: [{ matchExpressions: [{ key: "beta.kubernetes.io/instance-type", operator: "In", values: [ "c5.4xlarge" ]}]}],
+};
+const nginxV2 = nginx.createDeployment("nginx-v2", namespaceName, {app: "nginx-v2", svc: "nginx-ing-cntlr"}, myCluster, nodeSelector2);
