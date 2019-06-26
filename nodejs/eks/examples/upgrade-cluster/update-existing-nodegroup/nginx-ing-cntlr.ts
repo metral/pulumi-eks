@@ -115,7 +115,7 @@ export function makeConfigMap(
                 "upstream-keepalive-timeout": "315", // https://www.nginx.com/blog/testing-performance-nginx-ingress-controller-kubernetes/
                 "upstream-keepalive-requests": "1000000", // https://www.nginx.com/blog/testing-performance-nginx-ingress-controller-kubernetes/
                 "worker-processes": "8", // https://itnext.io/kubernetes-ingress-controllers-how-to-choose-the-right-one-part-1-41d3554978d2
-                "worker-shutdown-timeout": "30s",
+                "worker-shutdown-timeout": "45s",
             },
         },
         {
