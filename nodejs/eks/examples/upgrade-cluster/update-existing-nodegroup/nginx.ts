@@ -87,7 +87,7 @@ export function createService(
                 type: svcType,
                 ports: svcPorts,
                 selector: labels,
-                // externalTrafficPolicy: "Local",
+                externalTrafficPolicy: "Local",
             },
         },
         {
