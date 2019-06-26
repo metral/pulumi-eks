@@ -7,6 +7,7 @@ import * as pulumi from "@pulumi/pulumi";
 import * as iam from "./iam";
 import * as nginx from "./nginx";
 import * as nginxIngCntlr from "./nginx-ing-cntlr";
+import * as secgroup from "./sg";
 
 const projectName = pulumi.getProject();
 
@@ -24,7 +25,6 @@ const vpc = new awsx.ec2.Vpc(`${projectName}`, {
 });
 
 // Export VPC ID and Subnets.
-export const vpcId = vpc.id;
 export const allVpcSubnets = vpc.privateSubnetIds.concat(vpc.publicSubnetIds);
 
 // Create IAM Roles and InstanceProfiles to use on each of the two nodegroups.
@@ -41,7 +41,7 @@ const instanceProfile1 = new aws.iam.InstanceProfile(`${projectName}-instancePro
 // logging, private subnets for the nodegroup workers, and resource tags.
 const myCluster = new eks.Cluster(`${projectName}`, {
     version: "1.12",
-    vpcId: vpcId,
+    vpcId: vpc.id,
     subnetIds: allVpcSubnets,
     nodeAssociatePublicIpAddress: false,
     skipDefaultNodeGroup: true,
@@ -54,11 +54,17 @@ const myCluster = new eks.Cluster(`${projectName}`, {
     ],
     tags: tags,
     clusterSecurityGroupTags: { "myClusterSecurityGroupTag": "true" },
-    nodeSecurityGroupTags: { "myNodeSecurityGroupTag": "true" },
+    // nodeSecurityGroupTags: { "myNodeSecurityGroupTag": "true" },
 });
 
 // Export the cluster's kubeconfig.
 export const kubeconfig1 = myCluster.kubeconfig;
+
+// Create 3 nodeSecurityGroups, and their related eksClusterIngressRule - one
+// for each of the 3 node groups below. All nodeSecurityGroups are configured to
+// allow ingress worker Node traffic with each other, and the cluster's default
+// nodeSecurityGroup (myCluster.nodeSecurityGroup).
+const nodeSecurityGroupData = secgroup.configSecGroups(projectName, 3, vpc, myCluster);
 
 /*
  * Create two starting nodegroups with different instance types: standard &
@@ -70,8 +76,8 @@ export const kubeconfig1 = myCluster.kubeconfig;
 const stdAmiId = "ami-088dad958fbfa643e"; // v1.11.9
 const ngStandard = new eks.NodeGroup(`${projectName}-ng-ondemand-standard`, {
     cluster: myCluster,
-    nodeSecurityGroup: myCluster.nodeSecurityGroup,
-    clusterIngressRule: myCluster.eksClusterIngressRule,
+    nodeSecurityGroup: nodeSecurityGroupData[0].nodeSecurityGroup,
+    clusterIngressRule: nodeSecurityGroupData[0].clusterIngressRule,
     instanceType: "t2.medium",
     amiId: stdAmiId,
     desiredCapacity: 2,
@@ -96,8 +102,8 @@ const ngStandard = new eks.NodeGroup(`${projectName}-ng-ondemand-standard`, {
 const ng2xAmiId = "ami-088dad958fbfa643e"; // v1.11.9
 const ng2xlarge = new eks.NodeGroup(`${projectName}-ng-ondemand-2xlarge`, {
     cluster: myCluster,
-    nodeSecurityGroup: myCluster.nodeSecurityGroup,
-    clusterIngressRule: myCluster.eksClusterIngressRule,
+    nodeSecurityGroup: nodeSecurityGroupData[1].nodeSecurityGroup,
+    clusterIngressRule: nodeSecurityGroupData[1].clusterIngressRule,
     instanceType: "t3.2xlarge",
     amiId: ng2xAmiId,
     desiredCapacity: 4,
