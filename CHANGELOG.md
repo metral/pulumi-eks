@@ -1,6 +1,9 @@
 ## Unreleased
 
 ### Improvements
+
+- refactor(nodeSecurityGroup): expose creation, and consolidate rules
+  [#183](https://github.com/pulumi/pulumi-eks/pull/183)
 - fix(cluster): support configuring private and public endpoint access
   [#154](https://github.com/pulumi/pulumi-eks/pull/154)
 - fix(cluster): support passing additional arguments to /etc/eks/bootstrap.sh and --kubelet-extra-args
