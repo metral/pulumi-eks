@@ -39,7 +39,7 @@ export interface NodeGroupSecurityGroupOptions {
     eksCluster: aws.eks.Cluster;
 }
 
-export function createNodeGroupSecurityGroup(name: string, args: NodeGroupSecurityGroupOptions, parent: pulumi.ComponentResource): aws.ec2.SecurityGroup {
+export function createNodeGroupSecurityGroup(name: string, args: NodeGroupSecurityGroupOptions, parent: pulumi.ComponentResource): [aws.ec2.SecurityGroup, aws.ec2.SecurityGroupRule] {
     const nodeSecurityGroup = new aws.ec2.SecurityGroup(`${name}-nodeSecurityGroup`, {
         vpcId: args.vpcId,
         revokeRulesOnDelete: true,
@@ -93,5 +93,15 @@ export function createNodeGroupSecurityGroup(name: string, args: NodeGroupSecuri
         securityGroupId: nodeSecurityGroup.id,
     }, { parent: parent });
 
-    return nodeSecurityGroup;
+    const eksClusterIngressRule = new aws.ec2.SecurityGroupRule(`${name}-eksClusterIngressRule`, {
+        description: "Allow pods to communicate with the cluster API Server",
+        type: "ingress",
+        fromPort: 443,
+        toPort: 443,
+        protocol: "tcp",
+        securityGroupId: args.clusterSecurityGroup.id,
+        sourceSecurityGroupId: nodeSecurityGroup.id,
+    }, { parent: parent });
+
+    return [nodeSecurityGroup, eksClusterIngressRule];
 }
