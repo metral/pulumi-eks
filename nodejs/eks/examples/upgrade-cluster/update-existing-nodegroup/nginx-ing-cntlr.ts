@@ -201,9 +201,11 @@ export function makeDeployment(
                                         port: 10254,
                                         scheme: "HTTP",
                                     },
+                                    initialDelaySeconds: 10,
                                     periodSeconds: 10,
-                                    successThreshold: 1,
                                     timeoutSeconds: 10,
+                                    successThreshold: 1,
+                                    failureThreshold: 3,
                                 },
                                 livenessProbe: {
                                     httpGet: {
@@ -214,8 +216,8 @@ export function makeDeployment(
                                     initialDelaySeconds: 10,
                                     periodSeconds: 10,
                                     successThreshold: 1,
-                                    timeoutSeconds: 10,
                                     failureThreshold: 3,
+                                    timeoutSeconds: 10,
                                 },
                                 // For more info on all CLI args available:
                                 // https://github.com/kubernetes/ingress-nginx/blob/master/docs/user-guide/cli-arguments.md

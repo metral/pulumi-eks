@@ -139,7 +139,7 @@ const namespaceName = namespace.metadata.apply(m => m.name);
 const svcType = "LoadBalancer";
 const svcPorts = [{port: 80, protocol: "TCP", targetPort: "http"}];
 const serviceName = "nginx-ing-cntlr";
-const labels = { svc: serviceName };
+const labels = { app: "nginx-v1" };
 const service = nginx.createService(serviceName, myCluster.provider, labels,
     namespaceName, svcType, svcPorts);
 export const nginxServiceUrl = service.status.loadBalancer.ingress[0].hostname;
@@ -148,4 +148,4 @@ export const nginxServiceUrl = service.status.loadBalancer.ingress[0].hostname;
 const nodeSelector1: input.core.v1.NodeSelector = {
     nodeSelectorTerms: [{ matchExpressions: [{ key: "beta.kubernetes.io/instance-type", operator: "In", values: [ "t3.2xlarge" ]}]}],
 };
-const nginxV1 = nginx.createDeployment("nginx-v1", namespaceName, {app: "nginx-v1", svc: "nginx-ing-cntlr"}, myCluster, nodeSelector1);
+const nginxV1 = nginx.createDeployment("nginx-v1", namespaceName, {app: "nginx-v1"}, myCluster, nodeSelector1);
