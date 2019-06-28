@@ -163,7 +163,7 @@ const namespaceName = namespace.metadata.apply(m => m.name);
 
 // Create the Service.
 const nginxServicePorts = [{port: 80, protocol: "TCP", targetPort: "http"}];
-const nginxService = nginx.createService("nginx-ing-cntlr", myCluster.provider, { app: "nginx-v1" },
+const nginxService = nginx.createService("nginx-ing-cntlr", myCluster.provider, { app: "nginx-v2" },
     namespaceName, "LoadBalancer", nginxServicePorts);
 export const nginxServiceUrl = nginxService.status.loadBalancer.ingress[0].hostname;
 
