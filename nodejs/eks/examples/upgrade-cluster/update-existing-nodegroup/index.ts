@@ -167,6 +167,7 @@ const nginxService = nginx.createService("nginx-ing-cntlr", myCluster.provider, 
     namespaceName, "LoadBalancer", nginxServicePorts);
 export const nginxServiceUrl = nginxService.status.loadBalancer.ingress[0].hostname;
 
+/*
 // Deploy v1 of the NGINX Ingress Controller, preferably on t3.2xlarge workers.
 const nginxName1 = "nginx-v1";
 const nodeSelector1: input.core.v1.PreferredSchedulingTerm[] = [
@@ -181,6 +182,7 @@ const nodeSelector1: input.core.v1.PreferredSchedulingTerm[] = [
 ];
 const nginxDeployment1 = nginx.createDeployment(nginxName1, 3, namespaceName, {app: nginxName1},
     myCluster, nodeSelector1, nginxName1);
+*/
 
 /*
  * Deploy v1 of the Workload.
