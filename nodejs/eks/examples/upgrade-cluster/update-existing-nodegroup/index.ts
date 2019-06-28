@@ -183,3 +183,18 @@ const nodeSelector1: input.core.v1.PreferredSchedulingTerm[] = [
 ];
 const nginxDeployment1 = nginx.createDeployment(nginxName1, namespaceName, {app: nginxName1},
     myCluster, nodeSelector1, nginxName1);
+
+// Deploy v2 of the NGINX Ingress Controller, preferably on c5.4xlarge workers.
+const nginxName2 = "nginx-v2";
+const nodeSelector2: input.core.v1.PreferredSchedulingTerm[] = [
+    {
+        weight: 100,
+        preference: {
+            matchExpressions: [
+                { key: "beta.kubernetes.io/instance-type", operator: "In", values: [ "c5.4xlarge" ]},
+            ],
+        },
+    },
+];
+const nginxDeployment2 = nginx.createDeployment(nginxName2, namespaceName, {app: nginxName2},
+    myCluster, nodeSelector2, nginxName2);
