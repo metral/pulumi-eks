@@ -90,6 +90,7 @@ const ngStandard = new eks.NodeGroup(`${projectName}-ng-ondemand-standard`, {
     providers: { kubernetes: myCluster.provider},
 });
 
+/*
 // Create a 2xlarge node group of t3.2xlarge workers, with taints on the nodes.
 // This allows us to dedicate the node group entirely to a particular set of
 // Pods (e.g. NGINX ingress controller) that must tolerate the nodes to be able
@@ -121,6 +122,7 @@ const ng2xlarge = new eks.NodeGroup(`${projectName}-ng-ondemand-2xlarge`, {
 }, {
     providers: { kubernetes: myCluster.provider},
 });
+*/
 
 // Create a 4xlarge node group of c5.4xlarge workers, with similar taints on
 // the nodes as the 2xlarge nodegroup. This new  node group will be used to
