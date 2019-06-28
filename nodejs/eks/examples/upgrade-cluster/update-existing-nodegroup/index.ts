@@ -219,3 +219,22 @@ const nodeSelector2: input.core.v1.PreferredSchedulingTerm[] = [
 ];
 const nginxDeployment2 = nginx.createDeployment(nginxName2, 3, namespaceName, {app: nginxName2},
     myCluster, nodeSelector2, nginxName2);
+
+/*
+ * Deploy v2 of the Workload.
+ */
+
+const workloadName2 = "echoserver-v2";
+const workloadServicePorts2 = [{port: 80, protocol: "TCP", targetPort: "http"}];
+
+// Create v2 of the the Workload Service with an Ingress class for v2 of NGINX.
+const workloadService2 = echoserver.createService(workloadName2, myCluster.provider, { app: workloadName2 },
+    namespaceName, "ClusterIP", workloadServicePorts2);
+const workloadService2Name = workloadService2.metadata.apply(m => m.name);
+
+// Deploy v2 of the Workload (echoserver) in the general, standard nodegroup.
+const workloadDeployment2 = echoserver.createDeployment(workloadName2, 3, namespaceName, {app: workloadName2},
+    myCluster.provider);
+
+// Create v2 of the Workload Ingress.
+const workloadIngress2 = echoserver.createIngress(workloadName2, myCluster.provider, {app: workloadName2}, namespaceName, "nginx-v2", workloadService2Name);
