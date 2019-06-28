@@ -200,3 +200,22 @@ const workloadDeployment1 = echoserver.createDeployment(workloadName1, 3, namesp
 
 // Create v1 of the Workload Ingress.
 const workloadIngress = echoserver.createIngress(workloadName1, myCluster.provider, {app: workloadName1}, namespaceName, "nginx-v1", workloadService1Name);
+
+/*
+ * Deploy v2 of the NGINX Ingress Controller.
+ */
+
+// Deploy v2 of the NGINX Ingress Controller, preferably on c5.4xlarge workers.
+const nginxName2 = "nginx-v2";
+const nodeSelector2: input.core.v1.PreferredSchedulingTerm[] = [
+    {
+        weight: 100,
+        preference: {
+            matchExpressions: [
+                { key: "beta.kubernetes.io/instance-type", operator: "In", values: [ "c5.4xlarge" ]},
+            ],
+        },
+    },
+];
+const nginxDeployment2 = nginx.createDeployment(nginxName2, 3, namespaceName, {app: nginxName2},
+    myCluster, nodeSelector2, nginxName2);
