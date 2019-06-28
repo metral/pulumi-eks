@@ -169,6 +169,7 @@ const service = nginx.createService(serviceName, myCluster.provider, labels,
     namespaceName, svcType, svcPorts);
 export const nginxServiceUrl = service.status.loadBalancer.ingress[0].hostname;
 
+/*
 // Deploy v1 of the NGINX Ingress Controller, preferably on t3.2xlarge workers.
 const nginxName1 = "nginx-v1";
 const nodeSelector1: input.core.v1.PreferredSchedulingTerm[] = [
@@ -183,6 +184,7 @@ const nodeSelector1: input.core.v1.PreferredSchedulingTerm[] = [
 ];
 const nginxDeployment1 = nginx.createDeployment(nginxName1, namespaceName, {app: nginxName1},
     myCluster, nodeSelector1, nginxName1);
+*/
 
 // Deploy v2 of the NGINX Ingress Controller, preferably on c5.4xlarge workers.
 const nginxName2 = "nginx-v2";
