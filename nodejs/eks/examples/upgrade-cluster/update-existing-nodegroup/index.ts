@@ -188,6 +188,7 @@ const nginxDeployment1 = nginx.createDeployment(nginxName1, 3, namespaceName, {a
  * Deploy v1 of the Workload.
  */
 
+/*
 const workloadName1 = "echoserver-v1";
 const workloadServicePorts = [{port: 80, protocol: "TCP", targetPort: "http"}];
 
@@ -202,6 +203,7 @@ const workloadDeployment1 = echoserver.createDeployment(workloadName1, 3, namesp
 
 // Create v1 of the Workload Ingress.
 const workloadIngress = echoserver.createIngress(workloadName1, myCluster.provider, {app: workloadName1}, namespaceName, "nginx-v1", workloadService1Name);
+*/
 
 /*
  * Deploy v2 of the NGINX Ingress Controller.
