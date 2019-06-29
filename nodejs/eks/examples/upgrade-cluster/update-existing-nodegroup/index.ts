@@ -88,3 +88,42 @@ const ng2xlarge = utils.createNodeGroup(`${projectName}-ng-2xlarge`,
     instanceProfiles[1],
     {"nginx": { value: "true", effect: "NoSchedule"}},
 );
+
+/*
+ * Deploy the fronting LoadBalancer Service for both versions of the NGINX Ingress Controllers, and echoserver workloads.
+ */
+
+// Create a Namespace for NGINX and the echoserver Workload.
+const namespace = new k8s.core.v1.Namespace("apps", undefined, { provider: myCluster.provider });
+export const namespaceName = namespace.metadata.apply(m => m.name);
+
+// Create the LoadBalancer Service to front the NGINX Ingress Controller,
+// Initially, the service will target v1 of NGINX for ingress management.
+// In the upcoming blue/green migration, we'll change the service to target
+// v2 of NGINX.
+const nginxService = nginx.createService("nginx-ing-cntlr",
+    namespaceName,
+    { app: "nginx-v1" },
+    myCluster.provider,
+);
+export const nginxServiceUrl = nginxService.status.loadBalancer.ingress[0].hostname;
+
+/*
+ * v1 of NGINX & echoserver
+ */
+
+// Deploy v1 of the NGINX Ingress Controller, preferably on t3.2xlarge workers.
+const nginxV1 = nginx.createDeployment("nginx-v1",
+    3,
+    namespaceName,
+    myCluster,
+    ["t3.2xlarge"],
+);
+
+// Deploy v1 of the echoserver Workload on the standard node group.
+const echoserverV1 = echoserver.create("echoserver-v1",
+    3,
+    namespaceName,
+    "nginx-v1",
+    myCluster.provider,
+);
