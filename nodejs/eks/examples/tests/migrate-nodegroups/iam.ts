@@ -8,7 +8,7 @@ const managedPolicyArns: string[] = [
     "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly",
 ];
 
-// Creates a role and attches the EKS worker node IAM managed policies
+// Creates a role and attaches the EKS worker node IAM managed policies
 export function createRole(name: string): aws.iam.Role {
     const role = new aws.iam.Role(name, {
         assumeRolePolicy: aws.iam.assumeRolePolicyForPrincipal({
@@ -27,7 +27,7 @@ export function createRole(name: string): aws.iam.Role {
     return role;
 }
 
-// Creates a quantity of IAM roles
+// Creates a collection of IAM roles.
 export function createRoles(name: string, quantity: number): aws.iam.Role[] {
     const roles: aws.iam.Role[] = [];
 
@@ -38,7 +38,7 @@ export function createRoles(name: string, quantity: number): aws.iam.Role[] {
     return roles;
 }
 
-// Creates a set of IAM instance profiles from the given roles.
+// Creates a collection of IAM instance profiles from the given roles.
 export function createInstanceProfiles(name: string, roles: aws.iam.Role[]): aws.iam.InstanceProfile[] {
     const profiles: aws.iam.InstanceProfile[] = [];
 

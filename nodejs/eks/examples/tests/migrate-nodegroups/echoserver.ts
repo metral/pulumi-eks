@@ -44,7 +44,6 @@ export function create(
     return service;
 }
 
-// Create the Service.
 interface EchoserverServiceArgs {
     labels: pulumi.Input<any>;
     namespace: pulumi.Input<string>;
@@ -73,7 +72,6 @@ export function createService(
     );
 }
 
-// Create the Deployment.
 interface EchoserverDeploymentArgs {
     replicas: pulumi.Input<number>;
     labels: pulumi.Input<any>;
@@ -114,7 +112,6 @@ export function createDeployment(
     );
 }
 
-// Create the Ingress.
 interface EchoserverIngressArgs {
     labels: pulumi.Input<any>;
     namespace: pulumi.Input<string>;
@@ -162,4 +159,3 @@ export function createIngress(
         },
     );
 }
-

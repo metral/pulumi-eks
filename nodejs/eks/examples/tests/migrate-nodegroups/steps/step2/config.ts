@@ -1,8 +1,8 @@
-import * as pulumi from "@pulumi/pulumi";
-
-const pulumiConfig = new pulumi.Config(pulumi.getProject());
+// Enable the migration of NGINX from the 2xlarge -> 4xlarge node group.
 export const config = {
-    createNodeGroup2xlarge: "true",
-    createNodeGroup4xlarge: "true",
+    createNodeGroup2xlarge: true,
+    desiredCapacity2xlarge: 3,
+    createNodeGroup4xlarge: true,
+    desiredCapacity4xlarge: 5,
     nginxNodeSelectorTermValues: ["c5.4xlarge"],
 };

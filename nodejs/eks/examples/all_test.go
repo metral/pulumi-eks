@@ -124,7 +124,7 @@ func Test_AllTests(t *testing.T) {
 			EditDirs: []integration.EditDir{
 				// Add the new, 4xlarge node group.
 				{
-					Dir:      path.Join(cwd, "tests", "migrate-nodegroups", "steps", "steps1"),
+					Dir:      path.Join(cwd, "tests", "migrate-nodegroups", "steps", "step1"),
 					Additive: true,
 					ExtraRuntimeValidation: func(t *testing.T, stack integration.RuntimeValidationStackInfo) {
 						endpoint := fmt.Sprintf("%s/echoserver", stack.Outputs["nginxServiceUrl"].(string))
@@ -139,7 +139,7 @@ func Test_AllTests(t *testing.T) {
 				// Then, wait & verify all deployments are up and running.
 				// Lastly, kubectl drain & delete the unused 2xlarge node group.
 				{
-					Dir:      path.Join(cwd, "tests", "migrate-nodegroups", "steps", "steps2"),
+					Dir:      path.Join(cwd, "tests", "migrate-nodegroups", "steps", "step2"),
 					Additive: true,
 					ExtraRuntimeValidation: func(t *testing.T, stack integration.RuntimeValidationStackInfo) {
 						endpoint := fmt.Sprintf("%s/echoserver", stack.Outputs["nginxServiceUrl"].(string))
@@ -166,8 +166,7 @@ func Test_AllTests(t *testing.T) {
 						// TODO(metral): look into draining & deleting using
 						// client-go instead of shell'ing out to kubectl
 
-						// Write kubeconfig to temp file & export for use
-						// with kubectl drain & delete.
+						// Write kubeconfig to temp file & export for use with kubectl drain & delete.
 						kubeconfigFile, err := ioutil.TempFile(os.TempDir(), "kubeconfig-*.json")
 						assert.NoError(t, err, "expected tempfile to be created: %v", err)
 						defer os.Remove(kubeconfigFile.Name())
@@ -180,25 +179,38 @@ func Test_AllTests(t *testing.T) {
 						// Exec kubectl drain
 						out, err = exec.Command("/bin/bash", path.Join(scriptsDir, "drain-t3.2xlarge-nodes.sh")).Output()
 						assert.NoError(t, err, "expected no errors during kubectl drain: %v", err)
-						t.Logf("kubectl drain output: %s\n", out)
+						utils.PrintAndLog(fmt.Sprintf("kubectl drain output: %s\n", out), t)
 
 						// Exec kubectl delete
 						out, err = exec.Command("/bin/bash", path.Join(scriptsDir, "delete-t3.2xlarge-nodes.sh")).Output()
 						assert.NoError(t, err, "expected no errors during kubectl delete: %v", err)
-						t.Logf("kubectl delete output: %s\n", out)
+						utils.PrintAndLog(fmt.Sprintf("kubectl delete output: %s\n", out), t)
 					},
 				},
-				// Remove the unused 2xlarge node group.
+				// Scale down the 2xlarge node group to a desired capacity of 0 workers.
 				{
 					Dir:      path.Join(cwd, "tests", "migrate-nodegroups", "steps", "step3"),
 					Additive: true,
 					ExtraRuntimeValidation: func(t *testing.T, stack integration.RuntimeValidationStackInfo) {
-						maxWait := 10 * time.Minute
 						endpoint := fmt.Sprintf("%s/echoserver", stack.Outputs["nginxServiceUrl"].(string))
 						headers := map[string]string{
 							"Host": "apps.example.com",
 						}
-						utils.AssertHTTPResultWithRetry(t, endpoint, headers, maxWait, func(body string) bool {
+						utils.AssertHTTPResultWithRetry(t, endpoint, headers, 10*time.Minute, func(body string) bool {
+							return assert.NotEmpty(t, body, "Body should not be empty")
+						})
+					},
+				},
+				// Remove the unused 2xlarge node group.
+				{
+					Dir:      path.Join(cwd, "tests", "migrate-nodegroups", "steps", "step4"),
+					Additive: true,
+					ExtraRuntimeValidation: func(t *testing.T, stack integration.RuntimeValidationStackInfo) {
+						endpoint := fmt.Sprintf("%s/echoserver", stack.Outputs["nginxServiceUrl"].(string))
+						headers := map[string]string{
+							"Host": "apps.example.com",
+						}
+						utils.AssertHTTPResultWithRetry(t, endpoint, headers, 10*time.Minute, func(body string) bool {
 							return assert.NotEmpty(t, body, "Body should not be empty")
 						})
 					},

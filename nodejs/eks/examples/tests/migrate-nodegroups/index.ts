@@ -53,7 +53,7 @@ if (config.createNodeGroup2xlarge) {
     const ng2xlarge = utils.createNodeGroup(`${projectName}-ng-2xlarge`, {
         ami: "ami-0355c210cb3f58aa2", // k8s v1.12.7 in us-west-2
         instanceType: "t3.2xlarge",
-        desiredCapacity: 3,
+        desiredCapacity: config.desiredCapacity2xlarge,
         cluster: myCluster,
         instanceProfile: instanceProfiles[1],
         taints: {"nginx": { value: "true", effect: "NoSchedule"}},
@@ -66,7 +66,7 @@ if (config.createNodeGroup4xlarge) {
     const ng4xlarge = utils.createNodeGroup(`${projectName}-ng-4xlarge`, {
         ami: "ami-03a55127c613349a7", // k8s v1.13.7 in us-west-2
         instanceType: "c5.4xlarge",
-        desiredCapacity: 5,
+        desiredCapacity: config.desiredCapacity4xlarge,
         cluster: myCluster,
         instanceProfile: instanceProfiles[2],
         taints: {"nginx": { value: "true", effect: "NoSchedule"}},

@@ -52,7 +52,7 @@ func RunEKSSmokeTest(t *testing.T, resources []apitype.ResourceV3, kubeconfigs .
 	// Run the smoke test against each cluster, expecting the total desired
 	// Node count.
 	for clusterName := range kubeAccess {
-		printAndLog(fmt.Sprintf("Testing Cluster: %s\n", clusterName), t)
+		PrintAndLog(fmt.Sprintf("Testing Cluster: %s\n", clusterName), t)
 		clientset := kubeAccess[clusterName].Clientset
 		eksSmokeTest(t, clientset, clusterNodeCount[clusterName])
 	}
@@ -75,8 +75,8 @@ func APIServerVersionInfo(t *testing.T, clientset *kubernetes.Clientset) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	printAndLog(fmt.Sprintf("API Server Version: %s.%s\n", version.Major, version.Minor), t)
-	printAndLog(fmt.Sprintf("API Server GitVersion: %s\n", version.GitVersion), t)
+	PrintAndLog(fmt.Sprintf("API Server Version: %s.%s\n", version.Major, version.Minor), t)
+	PrintAndLog(fmt.Sprintf("API Server GitVersion: %s\n", version.GitVersion), t)
 }
 
 // assertEKSConfigMapReady ensures that the EKS aws-auth ConfigMap
@@ -102,7 +102,7 @@ func assertEKSConfigMapReady(t *testing.T, clientset *kubernetes.Clientset) {
 	require.Equal(t, true, awsAuthReady, "EKS ConfigMap %q does not exist in namespace %q", configMapName, namespace)
 	require.NotNil(t, awsAuth.Data, "%s ConfigMap should not be nil", configMapName)
 	require.NotEmpty(t, awsAuth.Data, "%q ConfigMap should not be empty", configMapName)
-	printAndLog(fmt.Sprintf("EKS ConfigMap %q exists and has data\n", configMapName), t)
+	PrintAndLog(fmt.Sprintf("EKS ConfigMap %q exists and has data\n", configMapName), t)
 }
 
 // AssertAllNodesReady ensures that all Nodes are running & have a "Ready"
@@ -111,7 +111,7 @@ func AssertAllNodesReady(t *testing.T, clientset *kubernetes.Clientset, desiredN
 	var nodes *corev1.NodeList
 	var err error
 
-	printAndLog(fmt.Sprintf("Total Desired Worker Node Count: %d\n", desiredNodeCount), t)
+	PrintAndLog(fmt.Sprintf("Total Desired Worker Node Count: %d\n", desiredNodeCount), t)
 
 	// Attempt to validate that the total desired worker Node count of
 	// instances are up & running.
@@ -148,7 +148,7 @@ func AssertAllNodesReady(t *testing.T, clientset *kubernetes.Clientset, desiredN
 				waitFor(fmt.Sprintf("Node %q", node.Name), "ready")
 			}
 		}
-		printAndLog(fmt.Sprintf("Node: %s | Ready Status: %t\n", node.Name, nodeReady), t)
+		PrintAndLog(fmt.Sprintf("Node: %s | Ready Status: %t\n", node.Name, nodeReady), t)
 	}
 
 	// Require that the readyCount matches the desiredNodeCount / total Nodes.
@@ -156,7 +156,7 @@ func AssertAllNodesReady(t *testing.T, clientset *kubernetes.Clientset, desiredN
 		"%d out of %d Nodes are ready", readyCount, len(nodes.Items))
 
 	// Output the overall ready status.
-	printAndLog(fmt.Sprintf("%d out of %d Nodes are ready\n", readyCount, len(nodes.Items)), t)
+	PrintAndLog(fmt.Sprintf("%d out of %d Nodes are ready\n", readyCount, len(nodes.Items)), t)
 }
 
 // AssertAllPodsReady ensures all Pods have a "Running" or "Succeeded" status
@@ -194,7 +194,7 @@ func AssertAllPodsReady(t *testing.T, clientset *kubernetes.Clientset) {
 				waitFor(fmt.Sprintf("Pod %q", pod.Name), "ready")
 			}
 		}
-		printAndLog(fmt.Sprintf("Pod: %s | Ready Status: %t\n", pod.Name, podReady), t)
+		PrintAndLog(fmt.Sprintf("Pod: %s | Ready Status: %t\n", pod.Name, podReady), t)
 	}
 
 	// Validate that the readyCount is not 0, and matches the total Pods
@@ -203,7 +203,7 @@ func AssertAllPodsReady(t *testing.T, clientset *kubernetes.Clientset) {
 	require.Equal(t, readyCount, len(pods.Items),
 		"%d out of %d Pods are ready", readyCount, len(pods.Items))
 
-	printAndLog(fmt.Sprintf("%d out of %d Pods are ready\n", readyCount, len(pods.Items)), t)
+	PrintAndLog(fmt.Sprintf("%d out of %d Pods are ready\n", readyCount, len(pods.Items)), t)
 }
 
 // AssertAllDeploymentsReady ensures all Deployments have valid & ready status
@@ -241,7 +241,7 @@ func AssertAllDeploymentsReady(t *testing.T, clientset *kubernetes.Clientset) {
 				waitFor(fmt.Sprintf("Deployment %q", deployment.Name), "ready")
 			}
 		}
-		printAndLog(fmt.Sprintf("Deployment: %s | Ready Status: %t\n", deployment.Name, deploymentReady), t)
+		PrintAndLog(fmt.Sprintf("Deployment: %s | Ready Status: %t\n", deployment.Name, deploymentReady), t)
 	}
 
 	// Validate that the readyCount is not 0, and matches the total Deployments
@@ -250,7 +250,7 @@ func AssertAllDeploymentsReady(t *testing.T, clientset *kubernetes.Clientset) {
 	require.Equal(t, readyCount, len(deployments.Items),
 		"%d out of %d Deployments are ready", readyCount, len(deployments.Items))
 
-	printAndLog(fmt.Sprintf("%d out of %d Deployments are ready\n", readyCount, len(deployments.Items)), t)
+	PrintAndLog(fmt.Sprintf("%d out of %d Deployments are ready\n", readyCount, len(deployments.Items)), t)
 }
 
 // waitFor is a helper func that prints to stdout & sleeps to indicate a
@@ -260,9 +260,9 @@ func waitFor(resource, status string) {
 	time.Sleep(RetryInterval * time.Second)
 }
 
-// printAndLog is a helper fucn that prints a string to stdout,
+// PrintAndLog is a helper fucn that prints a string to stdout,
 // and logs it to the testing logs.
-func printAndLog(s string, t *testing.T) {
+func PrintAndLog(s string, t *testing.T) {
 	fmt.Printf("%s", s)
 	t.Logf("%s", s)
 }
