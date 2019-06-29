@@ -3,14 +3,18 @@ package utils
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"net/http"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/pulumi/pulumi/pkg/apitype"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v2"
-	v1 "k8s.io/api/core/v1"
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
@@ -80,7 +84,7 @@ func APIServerVersionInfo(t *testing.T, clientset *kubernetes.Clientset) {
 func assertEKSConfigMapReady(t *testing.T, clientset *kubernetes.Clientset) {
 	awsAuthReady, retries := false, MaxRetries
 	configMapName, namespace := "aws-auth", "kube-system"
-	var awsAuth *v1.ConfigMap
+	var awsAuth *corev1.ConfigMap
 	var err error
 
 	// Attempt to validate that the aws-auth ConfigMap exists.
@@ -104,7 +108,7 @@ func assertEKSConfigMapReady(t *testing.T, clientset *kubernetes.Clientset) {
 // AssertAllNodesReady ensures that all Nodes are running & have a "Ready"
 // status condition.
 func AssertAllNodesReady(t *testing.T, clientset *kubernetes.Clientset, desiredNodeCount int) {
-	var nodes *v1.NodeList
+	var nodes *corev1.NodeList
 	var err error
 
 	printAndLog(fmt.Sprintf("Total Desired Worker Node Count: %d\n", desiredNodeCount), t)
@@ -158,7 +162,7 @@ func AssertAllNodesReady(t *testing.T, clientset *kubernetes.Clientset, desiredN
 // AssertAllPodsReady ensures all Pods have a "Running" or "Succeeded" status
 // phase, and a "Ready" status condition.
 func AssertAllPodsReady(t *testing.T, clientset *kubernetes.Clientset) {
-	var pods *v1.PodList
+	var pods *corev1.PodList
 	var err error
 
 	// Assume first non-error return of a list of Pods is correct & complete,
@@ -202,6 +206,53 @@ func AssertAllPodsReady(t *testing.T, clientset *kubernetes.Clientset) {
 	printAndLog(fmt.Sprintf("%d out of %d Pods are ready\n", readyCount, len(pods.Items)), t)
 }
 
+// AssertAllDeploymentsReady ensures all Deployments have valid & ready status
+// conditions.
+func AssertAllDeploymentsReady(t *testing.T, clientset *kubernetes.Clientset) {
+	var deployments *appsv1.DeploymentList
+	var err error
+
+	// Assume first non-error return of a list of Deployments is correct & complete,
+	// as we currently do not have a way of knowing ahead of time how many
+	// total Deployments to expect in each cluster before it is up and running.
+	for i := 0; i < MaxRetries; i++ {
+		deployments, err = clientset.AppsV1().Deployments("").List(metav1.ListOptions{})
+		if err != nil {
+			waitFor("list of all Deployments", fmt.Sprintf("returned: %s", err))
+		} else {
+			break
+		}
+	}
+
+	// Require that the Deployments returned are not empty.
+	require.NotEmpty(t, deployments, "The Deployments list returned should not be empty")
+
+	// Attempt to validate each Deployment has a "Ready" status.
+	var readyCount int
+	for _, deployment := range deployments.Items {
+		deploymentReady := false
+		// Attempt to check if a Deployment is ready, and output the resulting status.
+		for i := 0; i < MaxRetries; i++ {
+			if ready := IsDeploymentReady(clientset, &deployment); ready {
+				deploymentReady = true
+				readyCount++
+				break
+			} else {
+				waitFor(fmt.Sprintf("Deployment %q", deployment.Name), "ready")
+			}
+		}
+		printAndLog(fmt.Sprintf("Deployment: %s | Ready Status: %t\n", deployment.Name, deploymentReady), t)
+	}
+
+	// Validate that the readyCount is not 0, and matches the total Deployments
+	// returned.
+	require.NotEqual(t, readyCount, 0, "No Deployments are ready")
+	require.Equal(t, readyCount, len(deployments.Items),
+		"%d out of %d Deployments are ready", readyCount, len(deployments.Items))
+
+	printAndLog(fmt.Sprintf("%d out of %d Deployments are ready\n", readyCount, len(deployments.Items)), t)
+}
+
 // waitFor is a helper func that prints to stdout & sleeps to indicate a
 // wait & retry on a given resource, with an expected status.
 func waitFor(resource, status string) {
@@ -217,7 +268,7 @@ func printAndLog(s string, t *testing.T) {
 }
 
 // IsNodeReady attempts to check if the Node status condition is ready.
-func IsNodeReady(clientset *kubernetes.Clientset, node *v1.Node) (bool, error) {
+func IsNodeReady(clientset *kubernetes.Clientset, node *corev1.Node) (bool, error) {
 	// Attempt to retrieve Node.
 	n, err := clientset.CoreV1().Nodes().Get(node.Name, metav1.GetOptions{})
 	if err != nil {
@@ -226,9 +277,9 @@ func IsNodeReady(clientset *kubernetes.Clientset, node *v1.Node) (bool, error) {
 
 	// Check the returned Node's conditions for readiness.
 	for _, condition := range n.Status.Conditions {
-		if condition.Type == v1.NodeReady {
+		if condition.Type == corev1.NodeReady {
 			fmt.Printf("Checking if Node %q is Ready | Condition.Status: %q | Condition: %v\n", node.Name, condition.Status, condition)
-			return condition.Status == v1.ConditionTrue, nil
+			return condition.Status == corev1.ConditionTrue, nil
 		}
 	}
 
@@ -236,7 +287,7 @@ func IsNodeReady(clientset *kubernetes.Clientset, node *v1.Node) (bool, error) {
 }
 
 // IsPodReady attempts to check if the Pod's status & condition is ready.
-func IsPodReady(clientset *kubernetes.Clientset, pod *v1.Pod) (bool, error) {
+func IsPodReady(clientset *kubernetes.Clientset, pod *corev1.Pod) (bool, error) {
 	// Attempt to retrieve Pod.
 	p, err := clientset.CoreV1().Pods(pod.Namespace).Get(pod.Name, metav1.GetOptions{})
 	if err != nil {
@@ -244,16 +295,36 @@ func IsPodReady(clientset *kubernetes.Clientset, pod *v1.Pod) (bool, error) {
 	}
 
 	// Check the returned Pod's status & conditions for readiness.
-	if p.Status.Phase == v1.PodRunning || p.Status.Phase == v1.PodSucceeded {
+	if p.Status.Phase == corev1.PodRunning || p.Status.Phase == corev1.PodSucceeded {
 		for _, condition := range p.Status.Conditions {
-			if condition.Type == v1.PodReady {
+			if condition.Type == corev1.PodReady {
 				fmt.Printf("Checking if Pod %q is Ready | Condition.Status: %q | Condition: %v\n", pod.Name, condition.Status, condition)
-				return condition.Status == v1.ConditionTrue, nil
+				return condition.Status == corev1.ConditionTrue, nil
 			}
 		}
 	}
 
 	return false, nil
+}
+
+// IsDeploymentReady attempts to check if the Deployments's status conditions
+// are ready.
+func IsDeploymentReady(clientset *kubernetes.Clientset, deployment *appsv1.Deployment) bool {
+	// Attempt to retrieve Deployment.
+	d, err := clientset.AppsV1().Deployments(deployment.Namespace).Get(deployment.Name, metav1.GetOptions{})
+	if err != nil {
+		return false
+	}
+
+	// Check the returned Deployment's status & conditions for readiness.
+	for _, condition := range d.Status.Conditions {
+		if condition.Type == appsv1.DeploymentAvailable {
+			fmt.Printf("Checking if Deployment %q is Available | Condition.Status: %q | Condition: %v\n", deployment.Name, condition.Status, condition)
+			return condition.Status == corev1.ConditionTrue
+		}
+	}
+
+	return false
 }
 
 // IsKubeconfigValid checks that the kubeconfig provided is valid and error-free.
@@ -393,4 +464,71 @@ func mapClusterToNodeCount(resources []apitype.ResourceV3) (clusterNodeCountMap,
 	}
 
 	return clusterToNodeCount, nil
+}
+
+// Attempts to assert that an HTTP endpoint exists, and evaluate its response.
+func AssertHTTPResultWithRetry(t *testing.T, output interface{}, headers map[string]string, maxWait time.Duration, check func(string) bool) bool {
+	hostname, ok := output.(string)
+	if !assert.True(t, ok, fmt.Sprintf("expected `%s` output", output)) {
+		return false
+	}
+	if !(strings.HasPrefix(hostname, "http://") || strings.HasPrefix(hostname, "https://")) {
+		hostname = fmt.Sprintf("http://%s", hostname)
+	}
+	var err error
+	var resp *http.Response
+	startTime := time.Now()
+	count, sleep := 0, 0
+	for true {
+		now := time.Now()
+		req, err := http.NewRequest("GET", hostname, nil)
+		if !assert.NoError(t, err, "error reading request: %v", err) {
+			return false
+		}
+
+		for k, v := range headers {
+			// Host header cannot be set via req.Header.Set(), and must be set
+			// directly.
+			if strings.ToLower(k) == "host" {
+				req.Host = v
+				continue
+			}
+			req.Header.Set(k, v)
+		}
+
+		client := &http.Client{Timeout: time.Second * 10}
+		resp, err = client.Do(req)
+		if !assert.NoError(t, err, "error reading response: %v", err) {
+			return false
+		}
+
+		if err == nil && resp.StatusCode == 200 {
+			break
+		}
+		if now.Sub(startTime) >= maxWait {
+			fmt.Printf("Timeout after %v. Unable to http.get %v successfully.", maxWait, hostname)
+			break
+		}
+		count++
+		// delay 10s, 20s, then 30s and stay at 30s
+		if sleep > 30 {
+			sleep = 30
+		} else {
+			sleep += 10
+		}
+		time.Sleep(time.Duration(sleep) * time.Second)
+		fmt.Printf("Http Error: %v\n", err)
+		fmt.Printf("  Retry: %v, elapsed wait: %v, max wait %v\n", count, now.Sub(startTime), maxWait)
+	}
+	if !assert.NoError(t, err) {
+		return false
+	}
+	// Read the body
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if !assert.NoError(t, err) {
+		return false
+	}
+	// Verify it matches expectations
+	return check(string(body))
 }
