@@ -97,3 +97,14 @@ const echoserverDeployment = echoserver.create("echoserver",
     "my-nginx-class",
     myCluster.provider,
 );
+
+// Create a 4xlarge node group of c5.4xlarge workers. This new node group will
+// be used to migrate workload Pods from the 2xlarge node group.
+const ng4xlarge = utils.createNodeGroup(`${projectName}-ng-4xlarge`,
+    "ami-07ebcae043cf995aa", // k8s v1.13.7
+    "c5.4xlarge",
+    5,
+    myCluster,
+    instanceProfiles[2],
+    {"nginx": { value: "true", effect: "NoSchedule"}},
+);
