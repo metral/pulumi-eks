@@ -103,7 +103,7 @@ export const namespaceName = namespace.metadata.apply(m => m.name);
 // v2 of NGINX.
 const nginxService = nginx.createService("nginx-ing-cntlr",
     namespaceName,
-    { app: "nginx-v1" },
+    { app: "nginx-v2" },
     myCluster.provider,
 );
 export const nginxServiceUrl = nginxService.status.loadBalancer.ingress[0].hostname;
