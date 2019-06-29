@@ -76,3 +76,15 @@ const ngStandard = utils.createNodeGroup(`${projectName}-ng-standard`,
     myCluster,
     instanceProfiles[0],
 );
+
+// Create a 2xlarge node group of t3.2xlarge workers, with taints on the nodes.
+// This allows us to dedicate the node group entirely to v1 of the NGINX
+// Ingress Controller, which must tolerate the nodes to run on them.
+const ng2xlarge = utils.createNodeGroup(`${projectName}-ng-2xlarge`,
+    "ami-0e8d353285e26a68c", // k8s v1.12.7
+    "t3.2xlarge",
+    3,
+    myCluster,
+    instanceProfiles[1],
+    {"nginx": { value: "true", effect: "NoSchedule"}},
+);
