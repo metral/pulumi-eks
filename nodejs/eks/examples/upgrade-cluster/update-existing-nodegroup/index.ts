@@ -139,3 +139,23 @@ const ng4xlarge = utils.createNodeGroup(`${projectName}-ng-4xlarge`,
     instanceProfiles[2],
     {"nginx": { value: "true", effect: "NoSchedule"}},
 );
+
+/*
+ * v2 of NGINX & echoserver
+ */
+
+// Deploy v2 of the NGINX Ingress Controller, preferably on c5.4xlarge workers.
+const nginxV2 = nginx.createDeployment("nginx-v2",
+    3,
+    namespaceName,
+    myCluster,
+    ["c5.4xlarge"],
+);
+
+// Deploy v2 of the echoserver Workload on the standard node group.
+const echoserverV2 = echoserver.create("echoserver-v2",
+    3,
+    namespaceName,
+    "nginx-v2",
+    myCluster.provider,
+);
