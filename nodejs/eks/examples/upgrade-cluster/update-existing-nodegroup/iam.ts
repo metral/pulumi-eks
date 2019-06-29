@@ -1,4 +1,5 @@
 import * as aws from "@pulumi/aws";
+import * as iam from "./iam";
 import * as pulumi from "@pulumi/pulumi";
 
 const managedPolicyArns: string[] = [
@@ -24,4 +25,25 @@ export function createRole(name: string): aws.iam.Role {
     }
 
     return role;
+}
+
+export function createRoles(name: string, quantity: number): aws.iam.Role[] {
+    const roles: aws.iam.Role[] = [];
+
+    for (let i = 0; i < quantity; i++) {
+        roles.push(iam.createRole(`${name}-role-${i}`));
+    }
+
+    return roles;
+}
+
+export function createInstanceProfiles(name: string, roles: aws.iam.Role[]): aws.iam.InstanceProfile[] {
+    const profiles: aws.iam.InstanceProfile[] = [];
+
+    for (let i = 0; i < roles.length; i++) {
+        const role = roles[i];
+        profiles.push(new aws.iam.InstanceProfile(`${name}-instanceProfile-${i}`, {role: role}));
+    }
+
+    return profiles;
 }

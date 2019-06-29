@@ -28,11 +28,10 @@ const vpc = new awsx.ec2.Vpc(`${projectName}`, {
 export const vpcId = vpc.id;
 export const allVpcSubnets = vpc.privateSubnetIds.concat(vpc.publicSubnetIds);
 
-// Create IAM Roles and InstanceProfiles to use on each of the two nodegroups.
-const role0 = iam.createRole(`${projectName}-role0`);
-const role1 = iam.createRole(`${projectName}-role1`);
-const instanceProfile0 = new aws.iam.InstanceProfile(`${projectName}-instanceProfile0`, {role: role0});
-const instanceProfile1 = new aws.iam.InstanceProfile(`${projectName}-instanceProfile1`, {role: role1});
+// Create 3 IAM Roles and InstanceProfiles to use on each of the 3 nodegroups.
+const roles = iam.createRoles(projectName, 3);
+const instanceProfiles = iam.createInstanceProfiles(projectName, roles);
+
 
 /*
  * Create the EKS Cluster
@@ -47,7 +46,7 @@ const myCluster = new eks.Cluster(`${projectName}`, {
     nodeAssociatePublicIpAddress: false,
     skipDefaultNodeGroup: true,
     deployDashboard: false,
-    instanceRoles: [role0, role1],
+    instanceRoles: roles,
     enabledClusterLogTypes: [
         "api",
         "audit",
@@ -78,7 +77,7 @@ const ngStandard = new eks.NodeGroup(`${projectName}-ng-ondemand-standard`, {
     desiredCapacity: 2,
     minSize: 2,
     maxSize: 10,
-    instanceProfile: instanceProfile0,
+    instanceProfile: instanceProfiles[0],
     labels: {"ondemand": "true", "amiId": stdAmiId},
     cloudFormationTags: { "myCloudFormationTag": "true" },
     // Example tags if we were to run cluster-autoscaler: https://git.io/fjwWc
@@ -105,7 +104,7 @@ const ng2xlarge = new eks.NodeGroup(`${projectName}-ng-ondemand-2xlarge`, {
     desiredCapacity: 3,
     minSize: 3,
     maxSize: 10,
-    instanceProfile: instanceProfile1,
+    instanceProfile: instanceProfiles[1],
     labels: {"ondemand": "true", "amiId": ng2xAmiId},
     taints: {
         "nginx": {
@@ -137,7 +136,7 @@ const ng4xlarge = new eks.NodeGroup(`${projectName}-ng-ondemand-4xlarge`, {
     desiredCapacity: 6,
     minSize: 6,
     maxSize: 10,
-    instanceProfile: instanceProfile1,
+    instanceProfile: instanceProfiles[2],
     labels: {"ondemand": "true", "amiId": ng4xAmiId},
     taints: {
         "nginx": {
