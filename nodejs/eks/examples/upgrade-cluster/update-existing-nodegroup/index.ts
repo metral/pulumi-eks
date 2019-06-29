@@ -108,26 +108,6 @@ const nginxService = nginx.createService("nginx-ing-cntlr",
 );
 export const nginxServiceUrl = nginxService.status.loadBalancer.ingress[0].hostname;
 
-/*
- * v1 of NGINX & echoserver
- */
-
-// Deploy v1 of the NGINX Ingress Controller, preferably on t3.2xlarge workers.
-const nginxV1 = nginx.createDeployment("nginx-v1",
-    3,
-    namespaceName,
-    myCluster,
-    ["t3.2xlarge"],
-);
-
-// Deploy v1 of the echoserver Workload on the standard node group.
-const echoserverV1 = echoserver.create("echoserver-v1",
-    3,
-    namespaceName,
-    "nginx-v1",
-    myCluster.provider,
-);
-
 // Create a 4xlarge node group of c5.4xlarge workers, with similar taints on
 // the nodes as the 2xlarge nodegroup. This new node group will be used to
 // migrate workload Pods from the 2xlarge node group over to 4xlarge node group.
