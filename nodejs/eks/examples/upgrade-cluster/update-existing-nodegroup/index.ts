@@ -86,7 +86,7 @@ const nginxService = nginx.create("nginx-ing-cntlr",
     namespaceName,
     "my-nginx-class",
     myCluster,
-    ["t3.2xlarge"],
+    ["c5.4xlarge"],
 );
 export const nginxServiceUrl = nginxService.status.loadBalancer.ingress[0].hostname;
 
