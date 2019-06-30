@@ -77,18 +77,6 @@ const ngStandard = utils.createNodeGroup(`${projectName}-ng-standard`,
     instanceProfiles[0],
 );
 
-// Create a 2xlarge node group of t3.2xlarge workers, with taints on the nodes.
-// This allows us to dedicate the node group tothe NGINX Ingress Controller,
-// which must tolerate the nodes to run on them.
-const ng2xlarge = utils.createNodeGroup(`${projectName}-ng-2xlarge`,
-    "ami-0e8d353285e26a68c", // k8s v1.12.7
-    "t3.2xlarge",
-    3,
-    myCluster,
-    instanceProfiles[1],
-    {"nginx": { value: "true", effect: "NoSchedule"}},
-);
-
 // Create a Namespace for NGINX Ingress Controller and the echoserver workload.
 const namespace = new k8s.core.v1.Namespace("apps", undefined, { provider: myCluster.provider });
 export const namespaceName = namespace.metadata.apply(m => m.name);
@@ -99,7 +87,7 @@ const nginxService = nginx.create("nginx-ing-cntlr",
     namespaceName,
     "my-nginx-class",
     myCluster,
-    ["t3.2xlarge", "c5.4xlarge"],
+    ["c5.4xlarge"],
 );
 export const nginxServiceUrl = nginxService.status.loadBalancer.ingress[0].hostname;
 
