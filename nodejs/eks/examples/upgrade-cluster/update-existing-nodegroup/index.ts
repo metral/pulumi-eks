@@ -88,3 +88,25 @@ const ng2xlarge = utils.createNodeGroup(`${projectName}-ng-2xlarge`,
     instanceProfiles[1],
     {"nginx": { value: "true", effect: "NoSchedule"}},
 );
+
+// Create a Namespace for NGINX Ingress Controller and the echoserver workload.
+const namespace = new k8s.core.v1.Namespace("apps", undefined, { provider: myCluster.provider });
+export const namespaceName = namespace.metadata.apply(m => m.name);
+
+// Deploy the NGINX Ingress Controller, preferably on the t3.2xlarge node group.
+const nginxService = nginx.create("nginx-ing-cntlr",
+    3,
+    namespaceName,
+    "my-nginx-class",
+    myCluster,
+    ["t3.2xlarge"],
+);
+export const nginxServiceUrl = nginxService.status.loadBalancer.ingress[0].hostname;
+
+// Deploy the echoserver Workload on the standard node group.
+const echoserverDeployment = echoserver.create("echoserver",
+    3,
+    namespaceName,
+    "my-nginx-class",
+    myCluster.provider,
+);

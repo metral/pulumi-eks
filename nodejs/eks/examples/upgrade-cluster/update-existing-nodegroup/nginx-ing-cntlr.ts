@@ -3,6 +3,8 @@ import * as input from "@pulumi/kubernetes/types/input";
 import * as pulumi from "@pulumi/pulumi";
 import * as rbac from "./nginx-ing-cntlr-rbac";
 
+// Create the NGINX Ingress Controller Service, RBAC, Configmap, Deployment,
+// and Pod Disruption Budget.
 export function create(
     name: string,
     labels: pulumi.Input<any>,

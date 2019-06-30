@@ -4,14 +4,15 @@ import * as input from "@pulumi/kubernetes/types/input";
 import * as pulumi from "@pulumi/pulumi";
 import * as nginxIngCntlr from "./nginx-ing-cntlr";
 
-// Deploys the NGINX Ingress Controller Deployment.
-export function createDeployment(
+// Creates the NGINX Ingress Controller.
+export function create(
     name: string,
     replicas: pulumi.Input<number>,
     namespace: pulumi.Input<string>,
+    ingressClass: string,
     cluster: eks.Cluster,
     nodeSelectorValues: pulumi.Input<string>[],
-): k8s.apps.v1.Deployment {
+): k8s.core.v1.Service {
 
     // Define the Node affinity to target for the NGINX Deployment.
     const affinity: input.core.v1.Affinity = {
@@ -63,18 +64,24 @@ export function createDeployment(
         },
     ];
 
-    // Deploy the NGINX Ingress Controller Deployment.
     const deployment = nginxIngCntlr.create(name,
         {app: name},
         cluster.provider,
         replicas,
         namespace,
-        name,   // name used as ingress-class
+        ingressClass,
         affinity,
         tolerations,
     );
 
-    return deployment;
+    // Create the LoadBalancer Service to front the NGINX Ingress Controller,
+    const service = createService(name,
+        namespace,
+        { app: name },
+        cluster.provider,
+    );
+
+    return service;
 }
 
 // Create a Service.
