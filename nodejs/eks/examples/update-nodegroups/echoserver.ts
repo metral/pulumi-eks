@@ -1,6 +1,5 @@
 import * as eks from "@pulumi/eks";
 import * as k8s from "@pulumi/kubernetes";
-import * as input from "@pulumi/kubernetes/types/input";
 import * as pulumi from "@pulumi/pulumi";
 
 // Create the echoserver workload's Service, Deployment and Ingress.

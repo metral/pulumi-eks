@@ -1,6 +1,6 @@
 import * as aws from "@pulumi/aws";
-import * as iam from "./iam";
 import * as pulumi from "@pulumi/pulumi";
+import * as iam from "./iam";
 
 const managedPolicyArns: string[] = [
     "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy",
