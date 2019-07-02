@@ -1,3 +1,0 @@
-name: update-existing-nodegroup
-description: Creates an EKS cluster and updates the AMIof an existing NodeGroup.
-runtime: nodejs
