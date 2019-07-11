@@ -47,7 +47,7 @@ export const clusterName = myCluster.core.cluster.name;
 
 // Create a standard node group of t2.medium workers.
 const ngStandard = utils.createNodeGroup(`${projectName}-ng-standard`,
-    "ami-07ebcae043cf995aa", // k8s v1.13.7
+    "ami-03a55127c613349a7", // k8s v1.13.7 in us-west-2
     "t2.medium",
     3,
     myCluster,
@@ -57,7 +57,7 @@ const ngStandard = utils.createNodeGroup(`${projectName}-ng-standard`,
 // Create a 2xlarge node group of t3.2xlarge workers, with taints on the nodes.
 // This node group is dedicated for the NGINX Ingress Controller.
 const ng2xlarge = utils.createNodeGroup(`${projectName}-ng-2xlarge`,
-    "ami-0e8d353285e26a68c", // k8s v1.12.7
+    "ami-0355c210cb3f58aa2", // k8s v1.12.7 in us-west-2
     "t3.2xlarge",
     3,
     myCluster,
@@ -75,7 +75,7 @@ const nginxService = nginx.create("nginx-ing-cntlr",
     namespaceName,
     "my-nginx-class",
     myCluster,
-    ["c5.4xlarge"],
+    ["t3.2xlarge"],
 );
 export const nginxServiceUrl = nginxService.status.loadBalancer.ingress[0].hostname;
 
@@ -85,15 +85,4 @@ const echoserverDeployment = echoserver.create("echoserver",
     namespaceName,
     "my-nginx-class",
     myCluster.provider,
-);
-
-// Create a 4xlarge node group of c5.4xlarge workers. This new node group will
-// be used to migrate workload Pods from the 2xlarge node group.
-const ng4xlarge = utils.createNodeGroup(`${projectName}-ng-4xlarge`,
-    "ami-07ebcae043cf995aa", // k8s v1.13.7
-    "c5.4xlarge",
-    5,
-    myCluster,
-    instanceProfiles[2],
-    {"nginx": { value: "true", effect: "NoSchedule"}},
 );
