@@ -136,8 +136,7 @@ func Test_AllTests(t *testing.T) {
 				},
 				// Migrate NGINX from the 2xlarge to the 4xlarge node group by
 				// changing its nodeSelector values, which forces migration via rolling update.
-				// Then, wait & verify all deployments are up and running.
-				// Lastly, kubectl drain & delete the unused 2xlarge node group.
+				// Then, wait & verify all resources are up and running.
 				{
 					Dir:      path.Join(cwd, "tests", "migrate-nodegroups", "steps", "step2"),
 					Additive: true,
@@ -158,20 +157,15 @@ func Test_AllTests(t *testing.T) {
 						kubeAccess, err := utils.KubeconfigToKubeAccess(kubeconfig)
 						assert.NoError(t, err, "expected kubeconfig clients to be created: %v", err)
 
-						// Give it a little time for the new NGINX ReplicaSet to start up and be
-						// retrievable by client-go sync loop.
-						time.Sleep(10 * time.Second)
+						// Give it time for the new NGINX Deployment to
+						// migrate, and for its previous Pods to terminate.
+						time.Sleep(5 * time.Minute)
 
 						// Assert all resources, across all namespaces are still ready after migration.
 						utils.AssertKindInAllNamespacesReady(t, kubeAccess.Clientset, "replicasets")
 						utils.AssertKindInAllNamespacesReady(t, kubeAccess.Clientset, "deployments")
 
-						// Drain & delete t3.2xlarge node group.
-
-						// TODO(metral): look into draining & deleting using
-						// client-go instead of shell'ing out to kubectl
-
-						// Write kubeconfig to temp file & export for use with kubectl drain & delete.
+						// Write kubeconfig to temp file & export it for use with kubectl.
 						kubeconfigFile, err := ioutil.TempFile(os.TempDir(), "kubeconfig-*.json")
 						assert.NoError(t, err, "expected tempfile to be created: %v", err)
 						defer os.Remove(kubeconfigFile.Name())
@@ -181,12 +175,16 @@ func Test_AllTests(t *testing.T) {
 						assert.NoError(t, err, "expected kubeconfig file to close with no error: %v", err)
 						os.Setenv("KUBECONFIG", kubeconfigFile.Name())
 
-						// Exec kubectl drain
+						// Drain & delete t3.2xlarge node group.
+						// TODO(metral): look into draining & deleting using
+						// client-go instead of shell'ing out to kubectl
+
+						// Exec kubectl drain 2xlarge nodes.
 						out, err = exec.Command("/bin/bash", path.Join(scriptsDir, "drain-t3.2xlarge-nodes.sh")).Output()
 						assert.NoError(t, err, "expected no errors during kubectl drain: %v", err)
 						utils.PrintAndLog(fmt.Sprintf("kubectl drain output: %s\n", out), t)
 
-						// Exec kubectl delete
+						// Exec kubectl delete 2xlarge nodes.
 						out, err = exec.Command("/bin/bash", path.Join(scriptsDir, "delete-t3.2xlarge-nodes.sh")).Output()
 						assert.NoError(t, err, "expected no errors during kubectl delete: %v", err)
 						utils.PrintAndLog(fmt.Sprintf("kubectl delete output: %s\n", out), t)
@@ -198,9 +196,7 @@ func Test_AllTests(t *testing.T) {
 					Additive: true,
 					ExtraRuntimeValidation: func(t *testing.T, stack integration.RuntimeValidationStackInfo) {
 						endpoint := fmt.Sprintf("%s/echoserver", stack.Outputs["nginxServiceUrl"].(string))
-						headers := map[string]string{
-							"Host": "apps.example.com",
-						}
+						headers := map[string]string{"Host": "apps.example.com"}
 						utils.AssertHTTPResultWithRetry(t, endpoint, headers, 10*time.Minute, func(body string) bool {
 							return assert.NotEmpty(t, body, "Body should not be empty")
 						})
@@ -212,9 +208,7 @@ func Test_AllTests(t *testing.T) {
 					Additive: true,
 					ExtraRuntimeValidation: func(t *testing.T, stack integration.RuntimeValidationStackInfo) {
 						endpoint := fmt.Sprintf("%s/echoserver", stack.Outputs["nginxServiceUrl"].(string))
-						headers := map[string]string{
-							"Host": "apps.example.com",
-						}
+						headers := map[string]string{"Host": "apps.example.com"}
 						utils.AssertHTTPResultWithRetry(t, endpoint, headers, 10*time.Minute, func(body string) bool {
 							return assert.NotEmpty(t, body, "Body should not be empty")
 						})

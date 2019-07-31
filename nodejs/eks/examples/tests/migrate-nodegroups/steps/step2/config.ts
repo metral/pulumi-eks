@@ -1,4 +1,4 @@
-// Enable the migration of NGINX from the 2xlarge -> 4xlarge node group.
+// Migrate NGINX from the 2xlarge -> 4xlarge node group.
 export const config = {
     createNodeGroup2xlarge: true,
     desiredCapacity2xlarge: 3,

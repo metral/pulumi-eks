@@ -1,4 +1,4 @@
-// Enable the creation of the 4xlarge node group.
+// Create the 4xlarge node group.
 export const config = {
     createNodeGroup2xlarge: true,
     desiredCapacity2xlarge: 3,
