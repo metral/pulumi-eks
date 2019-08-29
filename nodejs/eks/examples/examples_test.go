@@ -47,6 +47,7 @@ func Test_Examples(t *testing.T) {
 			"@pulumi/eks",
 		},
 		ExpectRefreshChanges: true,
+		RunLatestUpdateTest:  true,
 	}
 
 	shortTests := []integration.ProgramTestOptions{
