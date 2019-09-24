@@ -273,8 +273,12 @@ export function createNodeGroup(name: string, args: NodeGroupOptions, parent: pu
     if (core.nodeSecurityGroup && args.nodeSecurityGroup) {
         if (core.nodeSecurityGroupTags &&
             core.nodeSecurityGroup.id !== args.nodeSecurityGroup.id) {
-            throw new Error(`The NodeGroup's nodeSecurityGroup and the cluster option nodeSecurityGroupTags are mutually exclusive. At most, only one option can be set`);
+            throw new Error(`The NodeGroup's nodeSecurityGroup and the cluster option nodeSecurityGroupTags are mutually exclusive. Choose a single approach`);
         }
+    }
+
+    if (args.nodePublicKey && args.keyName) {
+        throw new Error("nodePublicKey and keyName are mutually exclusive. Choose a single approach");
     }
 
     let nodeSecurityGroup: aws.ec2.SecurityGroup;

@@ -229,6 +229,22 @@ export function createCore(name: string, args: ClusterOptions, parent: pulumi.Co
         throw new Error("subnetIds, and the use of publicSubnetIds and/or privateSubnetIds are mutually exclusive. Choose a single approach.");
     }
 
+    if (args.nodeGroupOptions && (
+        args.nodeSubnetIds ||
+        args.nodeAssociatePublicIpAddress ||
+        args.instanceType ||
+        args.instanceProfileName ||
+        args.nodePublicKey ||
+        args.nodeRootVolumeSize ||
+        args.nodeUserData ||
+        args.minSize ||
+        args.maxSize ||
+        args.desiredCapacity ||
+        args.nodeAmiId ||
+        args.version)) {
+        throw new Error("Setting nodeGroupOptions, and any set of singular node group option(s) on the cluster, is mutually exclusive. Choose a single approach.");
+    }
+
     // Configure default networking architecture.
     let vpcId: pulumi.Input<string> = args.vpcId!;
     let clusterSubnetIds: pulumi.Input<pulumi.Input<string>[]> = [];
@@ -578,6 +594,11 @@ export interface ClusterOptions {
     privateSubnetIds?: pulumi.Input<pulumi.Input<string>[]>;
 
     /**
+     * The common configuration settings for NodeGroups.
+     */
+    nodeGroupOptions?: ClusterNodeGroupOptions;
+
+    /**
      * Whether or not to auto-assign the EKS worker nodes public IP addresses.
      * If this toggle is set to true, the EKS workers will be
      * auto-assigned public IPs. If false, they will not be auto-assigned
@@ -866,43 +887,63 @@ export class Cluster extends pulumi.ComponentResource {
         this.eksCluster = core.cluster;
         this.instanceRoles = core.instanceRoles;
 
-        // create default security group for nodegroup
-        [this.nodeSecurityGroup, this.eksClusterIngressRule] = createNodeGroupSecurityGroup(name, {
-            vpcId: core.vpcId,
-            clusterSecurityGroup: core.clusterSecurityGroup,
-            eksCluster: core.cluster,
-            tags: pulumi.all([
-                args.tags,
-                args.nodeSecurityGroupTags,
-            ]).apply(([tags, nodeSecurityGroupTags]) => (<aws.Tags>{
-                ...nodeSecurityGroupTags,
-                ...tags,
-            })),
-        }, this);
-        core.nodeSecurityGroup = this.nodeSecurityGroup;
+        if (args.nodeGroupOptions !== undefined &&
+            args.nodeGroupOptions.clusterIngressRule !== undefined &&
+            args.nodeGroupOptions.nodeSecurityGroup !== undefined
+        ) {
+            this.eksClusterIngressRule = args.nodeGroupOptions.clusterIngressRule;
+            this.nodeSecurityGroup = args.nodeGroupOptions.nodeSecurityGroup;
+            core.nodeSecurityGroup = this.nodeSecurityGroup;
+        } else {
+            // create default security group for nodegroup
+            [this.nodeSecurityGroup, this.eksClusterIngressRule] = createNodeGroupSecurityGroup(name, {
+                vpcId: core.vpcId,
+                clusterSecurityGroup: core.clusterSecurityGroup,
+                eksCluster: core.cluster,
+                tags: pulumi.all([
+                    args.tags,
+                    args.nodeSecurityGroupTags,
+                ]).apply(([tags, nodeSecurityGroupTags]) => (<aws.Tags>{
+                    ...nodeSecurityGroupTags,
+                    ...tags,
+                })),
+            }, this);
+            core.nodeSecurityGroup = this.nodeSecurityGroup;
+        }
 
         const configDeps = [core.kubeconfig];
         if (!args.skipDefaultNodeGroup) {
             // Create the worker node group and grant the workers access to the API server.
-            this.defaultNodeGroup = createNodeGroup(name, {
-                cluster: core,
-                nodeSubnetIds: args.nodeSubnetIds,
-                nodeAssociatePublicIpAddress: args.nodeAssociatePublicIpAddress,
-                nodeSecurityGroup: this.nodeSecurityGroup,
-                clusterIngressRule: this.eksClusterIngressRule,
-                instanceType: args.instanceType,
-                nodePublicKey: args.nodePublicKey,
-                nodeRootVolumeSize: args.nodeRootVolumeSize,
-                nodeUserData: args.nodeUserData,
-                minSize: args.minSize,
-                maxSize: args.maxSize,
-                desiredCapacity: args.desiredCapacity,
-                amiId: args.nodeAmiId,
-                version: args.version,
-                instanceProfile: core.instanceProfile,
-            }, this);
-            this.nodeSecurityGroup = this.defaultNodeGroup.nodeSecurityGroup;
-            configDeps.push(this.defaultNodeGroup.cfnStack.id);
+            if (args.nodeGroupOptions !== undefined) {
+                this.defaultNodeGroup = createNodeGroup(name, {
+                    ...args.nodeGroupOptions,
+                    cluster: core,
+                    nodeSecurityGroup: this.nodeSecurityGroup,
+                    clusterIngressRule: this.eksClusterIngressRule,
+                }, this);
+            } else {
+                this.defaultNodeGroup = createNodeGroup(name, {
+                    cluster: core,
+                    nodeSubnetIds: args.nodeSubnetIds,
+                    nodeAssociatePublicIpAddress: args.nodeAssociatePublicIpAddress,
+                    nodeSecurityGroup: this.nodeSecurityGroup,
+                    clusterIngressRule: this.eksClusterIngressRule,
+                    instanceType: args.instanceType,
+                    nodePublicKey: args.nodePublicKey,
+                    nodeRootVolumeSize: args.nodeRootVolumeSize,
+                    nodeUserData: args.nodeUserData,
+                    minSize: args.minSize,
+                    maxSize: args.maxSize,
+                    desiredCapacity: args.desiredCapacity,
+                    amiId: args.nodeAmiId,
+                    version: args.version,
+                    instanceProfile: core.instanceProfile,
+                }, this);
+                this.nodeSecurityGroup = this.defaultNodeGroup.nodeSecurityGroup;
+            }
+            if (this.defaultNodeGroup !== undefined) {
+                configDeps.push(this.defaultNodeGroup.cfnStack.id);
+            }
         }
 
         // Export the cluster's kubeconfig with a dependency upon the cluster's autoscaling group. This will help
@@ -931,8 +972,8 @@ export class Cluster extends pulumi.ComponentResource {
             nodeSecurityGroup: this.nodeSecurityGroup,
             clusterIngressRule: this.eksClusterIngressRule,
         }, {
-                parent: this,
-                providers: { kubernetes: this.provider },
-            });
+            parent: this,
+            providers: { kubernetes: this.provider },
+        });
     }
 }
