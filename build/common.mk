@@ -110,7 +110,7 @@ GO_TEST_FAST = PATH=$(PULUMI_BIN):$(PATH) GOGC=25 go test -short -v -count=1 -co
 GO_TEST = PATH=$(PULUMI_BIN):$(PATH) GOGC=25 go test -v -count=1 -cover -timeout 2h -parallel ${TESTPARALLELISM}
 GOPROXY = 'https://proxy.golang.org'
 
-.PHONY: default all ensure only_build only_test only_test_fast build lint install test_all core
+.PHONY: default all clean ensure only_build only_test only_test_fast build lint install test_all core
 
 # ensure that `default` is the target that is run when no arguments are passed to make
 default::
@@ -124,6 +124,7 @@ only_test_fast:: $(SUB_PROJECTS:%=%_only_test_fast)
 default:: $(SUB_PROJECTS:%=%_default)
 all:: $(SUB_PROJECTS:%=%_all)
 ensure:: $(SUB_PROJECTS:%=%_ensure)
+clean:: $(SUB_PROJECTS:%=%_clean)
 endif
 
 # `core` is like `default` except it does not build sub projects.
@@ -193,6 +194,8 @@ $(SUB_PROJECTS:%=%_default):
 	@$(MAKE) -C ./$(@:%_default=%) default
 $(SUB_PROJECTS:%=%_all):
 	@$(MAKE) -C ./$(@:%_all=%) all
+$(SUB_PROJECTS:%=%_clean):
+	@$(MAKE) -C ./$(@:%_clean=%) clean
 $(SUB_PROJECTS:%=%_ensure):
 	@$(MAKE) -C ./$(@:%_ensure=%) ensure
 $(SUB_PROJECTS:%=%_build):

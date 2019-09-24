@@ -12,6 +12,9 @@ TESTPARALLELISM := 20
 export PULUMI_TEST_DEBUG_LOG_LEVEL ?= 2
 export PULUMI_TEST_DEBUG_UPDATES ?= true
 
+clean:
+	rm -rf node_modules package-lock.json yarn.lock
+
 build::
 	yarn install
 	tsc

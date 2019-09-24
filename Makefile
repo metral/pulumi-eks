@@ -8,10 +8,6 @@ publish_packages:
 	./scripts/publish_packages.sh
 	$$(go env GOPATH)/src/github.com/pulumi/scripts/ci/build-package-docs.sh eks
 
-.PHONY: clean
-clean:
-	rm -rf node_modules package-lock.json yarn.lock
-
 .PHONY: check_clean_worktree
 check_clean_worktree:
 	$$(go env GOPATH)/src/github.com/pulumi/scripts/ci/check-worktree-is-clean.sh
