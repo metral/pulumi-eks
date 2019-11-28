@@ -15,21 +15,15 @@
 package examples
 
 import (
-	"encoding/json"
-	"fmt"
-	"io/ioutil"
 	"os"
-	"os/exec"
 	"path"
 	"testing"
-	"time"
-
-	"github.com/stretchr/testify/assert"
 
 	"github.com/pulumi/pulumi-eks/utils"
 	"github.com/pulumi/pulumi/pkg/testing/integration"
 )
 
+/*
 func TestAccCluster(t *testing.T) {
 	test := getJSBaseOptions(t).
 		With(integration.ProgramTestOptions{
@@ -61,6 +55,7 @@ func TestAccNodeGroup(t *testing.T) {
 
 	integration.ProgramTest(t, &test)
 }
+*/
 
 func TestAccManagedNodeGroup(t *testing.T) {
 	test := getJSBaseOptions(t).
@@ -77,6 +72,7 @@ func TestAccManagedNodeGroup(t *testing.T) {
 	integration.ProgramTest(t, &test)
 }
 
+/*
 func TestAccTags(t *testing.T) {
 	test := getJSBaseOptions(t).
 		With(integration.ProgramTestOptions{
@@ -389,6 +385,7 @@ func TestAccMigrateNodeGroups(t *testing.T) {
 
 	integration.ProgramTest(t, &test)
 }
+*/
 
 func getEnvRegion(t *testing.T) string {
 	envRegion := os.Getenv("AWS_REGION")
