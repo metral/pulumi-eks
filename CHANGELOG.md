@@ -2,6 +2,8 @@
 
 ### Improvements
 
+- Refactor managed nodegroup API and require its role be provided to the cluster
+  [#302](https://github.com/pulumi/pulumi-eks/pull/262)
 - feat(cluster): Add cluster tagging
   [#262](https://github.com/pulumi/pulumi-eks/pull/262)
 - refactor(vpcCni): set node anti-affinity to not deploy to fargate
