@@ -2,6 +2,13 @@
 
 ### Improvements
 
+- feat(identity): add support to setup OIDC provider
+  [#320](https://github.com/pulumi/pulumi-eks/pull/320)
+
+## 0.18.19 (Released December 27, 2019)
+
+### Improvements
+
 - Unblock CI by disabling debug logging, rm unnecessary tests, and fixing broken tests
   [#309](https://github.com/pulumi/pulumi-eks/pull/309)
 - feat(cluster): Support public access controls
