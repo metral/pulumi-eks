@@ -574,6 +574,8 @@ export function createCore(name: string, args: ClusterOptions, parent: pulumi.Co
                 url: eksCluster.identities[0].oidcs[0].issuer,
                 thumbprintLists: [fingerprint],
             }, { parent: parent });
+        } else {
+            throw new Error("Cannot create OIDC provider due to an invalid cert fingerprint");
         }
     }
 
