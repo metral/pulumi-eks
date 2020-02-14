@@ -2,6 +2,8 @@
 
 ### Improvements
 
+- update(cni): update from v1.5.3 -> v1.6.0
+  [#325](https://github.com/pulumi/pulumi-eks/pull/325)
 - feat(cluster): allow optional configuration of cluster name
   [#322](https://github.com/pulumi/pulumi-eks/pull/322)
 - feat(identity): add support to setup OIDC provider
