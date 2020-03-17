@@ -54,9 +54,10 @@ function findIntRootCACertificate(certificate: tls.DetailedPeerCertificate): tls
         // pulumi.all([cert, prevCert]).apply(([c, p]) => {
         //     console.log(`here- | cert: ${c} | prevCert: ${p}`);
         // });
-        console.log(`here - ${count} | cert: ${cert.fingerprint} | prevCert: ${prevCert.fingerprint}`);
+        console.log(`here pre - ${count} | cert: ${cert.fingerprint} | prevCert: ${prevCert.fingerprint}`);
         prevCert = cert;
         cert = cert.issuerCertificate;
+        console.log(`here post - ${count} | cert: ${cert.fingerprint} | prevCert: ${prevCert.fingerprint}`);
         count++;
     }
     console.log("here-last - cert: " + cert.fingerprint);
