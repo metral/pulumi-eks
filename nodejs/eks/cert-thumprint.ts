@@ -47,10 +47,20 @@ function findIntRootCACertificate(certificate: tls.DetailedPeerCertificate): tls
 
     // The trusted root cert is the last cert in the chain, and it repeats itself as the issuer.
     // The intermediate root CA cert is the second to last cert in the chain.
+    console.log("here0 - cert: " + cert.fingerprint);
+    console.log("here0 - prevCert: " + prevCert.fingerprint);
+    let count = 0;
     while (cert?.fingerprint !== cert?.issuerCertificate?.fingerprint ) {
+        // pulumi.all([cert, prevCert]).apply(([c, p]) => {
+        //     console.log(`here- | cert: ${c} | prevCert: ${p}`);
+        // });
+        console.log(`here - ${count} | cert: ${cert.fingerprint} | prevCert: ${prevCert.fingerprint}`);
         prevCert = cert;
         cert = cert.issuerCertificate;
+        count++;
     }
+    console.log("here-last - cert: " + cert.fingerprint);
+    console.log("here-last - prevCert returning: " + prevCert.fingerprint);
     return prevCert;
 }
 
