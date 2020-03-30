@@ -2,6 +2,11 @@
 
 ### Improvements
 
+- refactor(aws-auth): replace aws-iam-authenticator with aws eks get-token
+  [#360](https://github.com/pulumi/pulumi-eks/pull/360)
+  Note: for existing clusters, this change will recompute the kubeconfig used,
+  as its arguments and settings get updated to work with get-token.
+  It should not affect cluster access.
 - feat(cluster): add getKubeconfig method to generate scoped kubeconfigs
   [#356](https://github.com/pulumi/pulumi-eks/pull/356)
 
