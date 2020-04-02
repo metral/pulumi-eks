@@ -1,6 +1,6 @@
-import * as pulumi from "@pulumi/pulumi";
 import * as awsx from "@pulumi/awsx";
 import * as eks from "@pulumi/eks";
+import * as pulumi from "@pulumi/pulumi";
 
 const projectName = pulumi.getProject();
 
@@ -19,6 +19,7 @@ const cluster2 = new eks.Cluster(`${projectName}-2`, {
     minSize: 2,
     maxSize: 2,
     deployDashboard: false,
+    useLatestAmi: true,
     enabledClusterLogTypes: [
         "api",
         "audit",

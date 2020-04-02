@@ -2,6 +2,8 @@
 
 ### Improvements
 
+- feat(nodegroup): add opts to use the recommended AMIs from the SSM store
+  [#366](https://github.com/pulumi/pulumi-eks/pull/366)
 - deps(pulumi): bump node and go pulumi/pulumi to v1.13.1
   [#361](https://github.com/pulumi/pulumi-eks/pull/361)
 - feat(cluster): add getKubeconfig method to generate scoped kubeconfigs

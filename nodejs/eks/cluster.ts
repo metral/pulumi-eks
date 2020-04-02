@@ -303,7 +303,9 @@ export function createCore(name: string, args: ClusterOptions, parent: pulumi.Co
         args.minSize ||
         args.maxSize ||
         args.desiredCapacity ||
-        args.nodeAmiId)) {
+        args.nodeAmiId ||
+        args.useLatestAmi ||
+        args.useLatestAmiWithGpu)) {
         throw new Error("Setting nodeGroupOptions, and any set of singular node group option(s) on the cluster, is mutually exclusive. Choose a single approach.");
     }
 
@@ -319,6 +321,8 @@ export function createCore(name: string, args: ClusterOptions, parent: pulumi.Co
         maxSize: args.maxSize,
         desiredCapacity: args.desiredCapacity,
         amiId: args.nodeAmiId,
+        useLatestAmi: args.useLatestAmi,
+        useLatestAmiWithGpu: args.useLatestAmiWithGpu,
         version: args.version,
     };
 
@@ -822,11 +826,43 @@ export interface ClusterOptions {
     customInstanceRolePolicy?: pulumi.Input<string>;
 
     /**
-     * The AMI to use for worker nodes. Defaults to the value of Amazon EKS - Optimized AMI if no value is provided.
-	 * More information about the AWS eks optimized ami is available at https://docs.aws.amazon.com/eks/latest/userguide/eks-optimized-ami.html.
-	 * Use the information provided by AWS if you want to build your own AMI.
+     * The AMI to use for the worker nodes.
+     *
+     * Defaults to the current value of Amazon EKS Optimized Linux AMI using a
+     * filtered search at the time of cluster creation if no value is provided.
+     *
+     * Note: If defaulting, use `useLatestAmi` or `useLatestAmiWithGpu` instead.
+     *
+     * See for more details:
+     * - https://docs.aws.amazon.com/eks/latest/userguide/eks-optimized-ami.html.
      */
     nodeAmiId?: pulumi.Input<string>;
+
+    /**
+     * Use the latest recommended EKS Optimized Linux AMI for the worker nodes
+     * from the AWS Systems Manager Parameter Store.
+     *
+     * Defaults to false.
+     * Note: `useLatestAmi` and `useLatestAmiWithGpu` are mutually exclusive.
+     *
+     * See for more details:
+     * - https://docs.aws.amazon.com/eks/latest/userguide/eks-optimized-ami.html.
+     * - https://docs.aws.amazon.com/eks/latest/userguide/retrieve-ami-id.html
+     */
+    useLatestAmi?: pulumi.Input<boolean>;
+
+    /**
+     * Use the latest recommended EKS Optimized Linux AMI with GPU support for
+     * the worker nodes from the AWS Systems Manager Parameter Store.
+     *
+     * Defaults to false.
+     * Note: `useLatestAmiWithGpu` and `useLatestAmi` are mutually exclusive.
+     *
+     * See for more details:
+     * - https://docs.aws.amazon.com/eks/latest/userguide/eks-optimized-ami.html.
+     * - https://docs.aws.amazon.com/eks/latest/userguide/retrieve-ami-id.html
+     */
+    useLatestAmiWithGpu?: pulumi.Input<boolean>;
 
     /**
      * Public key material for SSH access to worker nodes. See allowed formats at:
