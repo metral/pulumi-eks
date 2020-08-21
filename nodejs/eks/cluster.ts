@@ -340,6 +340,21 @@ export function createCore(name: string, args: ClusterOptions, parent: pulumi.Co
         throw new Error("Setting nodeGroupOptions, and any set of singular node group option(s) on the cluster, is mutually exclusive. Choose a single approach.");
     }
 
+    // Check if the cluster name provided or autoname used starts with 'eks-'.
+    // The cluster name is used for the fargate profile name, and we must
+    // ensure `eks-` is not used in either naming option, as AWS considers it
+    // a reserved prefix and will fail the fargate profile creation.
+    if (args.fargate) {
+        const nameToCheck = args.name || name.concat("-");
+        const profileNameRegex = new RegExp("^" + "eks-", "i"); // starts with (^) 'eks-', (i)gnore casing
+        const patternExists = pulumi.output(nameToCheck).apply(n => {
+            return profileNameRegex.test(n);
+        });
+        if (patternExists) {
+            throw new Error(`The fargate profile name uses the cluster name, and the provied name will use the reserved AWS prefix that is not allowed: 'eks-'. Choose an alternate name`);
+        }
+    }
+
     // Configure the node group options.
     const nodeGroupOptions: ClusterNodeGroupOptions = args.nodeGroupOptions || {
         nodeSubnetIds: args.nodeSubnetIds,
